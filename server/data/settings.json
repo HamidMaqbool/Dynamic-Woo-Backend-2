@@ -1,0 +1,13 @@
+{
+  "general": {
+    "siteName": "AuroParts Admin",
+    "siteDescription": "Premium Auto Parts CRM",
+    "contactEmail": "admin@auroparts.com",
+    "maintenanceMode": false
+  },
+  "appearance": {
+    "theme": "light",
+    "primaryColor": "#4F46E5",
+    "sidebarCollapsed": false
+  }
+}
