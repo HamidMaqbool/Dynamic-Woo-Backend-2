@@ -33,7 +33,7 @@ export const DataTable: React.FC = () => {
     } = useCRMStore();
 
     const listRoute = routes?.find(r => r.view === 'list');
-    const basePath = listRoute?.path || '/my-products';
+    const basePath = listRoute?.path || '/products';
 
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null; isBulk: boolean }>({
         isOpen: false,
