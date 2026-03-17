@@ -7,6 +7,18 @@ import { cn } from '../utils/cn';
 import { Icon } from './Icon';
 import { TableSkeleton } from './Skeleton';
 import { ConfirmationModal } from './ConfirmationModal';
+import { TableHeader } from './TableHeader';
+import { TableFilters } from './TableFilters';
+import { TablePagination } from './TablePagination';
+
+// Column Types
+import { TextColumn } from './column-types/TextColumn';
+import { SelectColumn } from './column-types/SelectColumn';
+import { ImageColumn } from './column-types/ImageColumn';
+import { BadgeColumn } from './column-types/BadgeColumn';
+import { StatusColumn } from './column-types/StatusColumn';
+import { ActionColumn } from './column-types/ActionColumn';
+import { ManualUpdateColumn } from './column-types/ManualUpdateColumn';
 
 export const DataTable: React.FC = () => {
     const navigate = useNavigate();
@@ -26,11 +38,16 @@ export const DataTable: React.FC = () => {
         setItemsPerPage, 
         setSearchQuery,
         setFilters,
+        addProduct,
+        updateProduct,
         deleteProduct,
         bulkDeleteProducts,
         selectedProductIds,
         setSelectedProductIds
     } = useCRMStore();
+
+    const [localChanges, setLocalChanges] = useState<Record<string, Partial<Product>>>({});
+    const [newRows, setNewRows] = useState<Product[]>([]);
 
     const listRoute = routes?.find(r => r.view === 'list');
     const basePath = listRoute?.path || '/products';
@@ -50,13 +67,71 @@ export const DataTable: React.FC = () => {
     }
 
     const tableConfig = schema.table["auroparts-product"].table;
-    const cols = tableConfig.cols;
+    const updateMode = tableConfig.updateMode || 'auto';
+    const cols = [...tableConfig.cols];
+
+    // Add manual update column if needed
+    if (updateMode === 'manual') {
+        cols.push({ name: "Update", col: "manual_update", type: "manual_update", width: "100px" });
+    }
 
     // Get filter options from schema
     const statusOptions = (schema.form["auroparts-product"][0].fields.find((f: any) => f.name === 'status') as any)?.options || [];
-    // Parent ID options could be fetched or derived, for now we'll keep it simple or use a fixed list if needed
-    // In a real app, this might be another API call
-    const parentIdOptions = ['P001', 'P002', 'P003']; 
+
+    const handleAddRow = () => {
+        const newRow: Product = {
+            id: `NEW-${Date.now()}`,
+            image: 'https://picsum.photos/seed/new/100/100',
+            identifier: `AURO-${Math.floor(Math.random() * 10000)}`,
+            parent_id: '-',
+            title: '',
+            product_type: 'simple',
+            status: 'draft',
+            created_at: new Date().toISOString().split('T')[0]
+        };
+        setNewRows(prev => [newRow, ...prev]);
+        setLocalChanges(prev => ({
+            ...prev,
+            [newRow.id]: { ...newRow }
+        }));
+    };
+
+    const handleLocalChange = (productId: string, field: string, value: any, autoUpdate?: boolean) => {
+        const isNew = productId.startsWith('NEW-');
+        
+        // If column has autoUpdate attribute, it triggers update on change regardless of global updateMode
+        // (unless it's a new row which hasn't been saved yet)
+        if ((autoUpdate || updateMode === 'auto') && !isNew) {
+            updateProduct(productId, { [field]: value });
+        } else {
+            setLocalChanges(prev => ({
+                ...prev,
+                [productId]: {
+                    ...(prev[productId] || {}),
+                    [field]: value
+                }
+            }));
+        }
+    };
+
+    const handleManualUpdate = async (productId: string) => {
+        const changes = localChanges[productId];
+        if (changes) {
+            if (productId.startsWith('NEW-')) {
+                const { id, ...productData } = changes as Product;
+                await addProduct(productData as Product);
+                setNewRows(prev => prev.filter(r => r.id !== productId));
+            } else {
+                await updateProduct(productId, changes);
+            }
+            
+            setLocalChanges(prev => {
+                const next = { ...prev };
+                delete next[productId];
+                return next;
+            });
+        }
+    };
 
     const toggleSelectAll = () => {
         if (selectedProductIds.length === products.length && products.length > 0) {
@@ -75,6 +150,15 @@ export const DataTable: React.FC = () => {
     };
 
     const handleDelete = (id: string) => {
+        if (id.startsWith('NEW-')) {
+            setNewRows(prev => prev.filter(r => r.id !== id));
+            setLocalChanges(prev => {
+                const next = { ...prev };
+                delete next[id];
+                return next;
+            });
+            return;
+        }
         setDeleteModal({ isOpen: true, id, isBulk: false });
     };
 
@@ -90,85 +174,117 @@ export const DataTable: React.FC = () => {
         }
     };
 
+    const renderCell = (col: any, product: Product) => {
+        const productId = product.id;
+        const fieldName = col.col as string;
+        const originalValue = product[fieldName as keyof Product];
+        const localValue = localChanges[productId]?.[fieldName];
+        const value = localValue !== undefined ? localValue : originalValue;
+
+        // Default to simple text if columnType is not given but it's an editable field
+        // We assume fields with col name like 'title' or 'status' might be editable if columnType is missing
+        // but for now let's stick to explicit columnType or default to span for non-editable
+        
+        const columnType = col.columnType || (['title', 'status'].includes(fieldName) ? 'text' : undefined);
+
+        if (columnType === 'text') {
+            return (
+                <TextColumn 
+                    value={value as string}
+                    onChange={(val) => handleLocalChange(productId, fieldName, val, col.autoUpdate)}
+                    placeholder={`Enter ${col.name}...`}
+                />
+            );
+        }
+
+        if (columnType === 'select') {
+            return (
+                <SelectColumn 
+                    value={value as string}
+                    onChange={(val) => handleLocalChange(productId, fieldName, val, col.autoUpdate)}
+                    options={statusOptions}
+                />
+            );
+        }
+
+        if (col.type === 'manual_update') {
+            return (
+                <ManualUpdateColumn 
+                    hasChanges={!!localChanges[productId]}
+                    isNew={productId.startsWith('NEW-')}
+                    onUpdate={() => handleManualUpdate(productId)}
+                />
+            );
+        }
+
+        if (col.type === 'image') {
+            return <ImageColumn src={value as string} />;
+        }
+
+        if (col.type === 'action') {
+            const isNew = productId.startsWith('NEW-');
+            if (isNew) {
+                return (
+                    <button 
+                        onClick={() => handleDelete(productId)}
+                        className="p-2 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors"
+                        title="Remove Row"
+                    >
+                        <Icon name="x" className="w-4 h-4" />
+                    </button>
+                );
+            }
+            return (
+                <ActionColumn 
+                    onEdit={() => navigate(`${basePath}/edit/${product.id}`)}
+                    onDelete={() => handleDelete(product.id)}
+                />
+            );
+        }
+
+        if (col.type === 'badge') {
+            return <BadgeColumn value={value as string} type={value === 'variation' ? 'indigo' : 'slate'} />;
+        }
+
+        if (col.col === 'status') {
+            return <StatusColumn status={value as string} />;
+        }
+
+        if (col.col === 'id' || col.col === 'identifier') {
+            return <span className="font-mono text-xs font-semibold text-slate-400">{value as string}</span>;
+        }
+
+        return <span className="font-medium text-slate-700">{value as string}</span>;
+    };
+
+    const allRows = [...newRows, ...products];
+
     return (
         <div className="flex flex-col h-full bg-[#F8F9FA] text-[#1A1A1A] font-sans">
             {/* Header Controls */}
             <div className="bg-white border-b border-slate-200 px-4 py-4 sm:px-8 sm:py-6 flex flex-col gap-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                            {schema.table["auroparts-product"].label.pulular}
-                        </h1>
-                        <p className="text-xs text-slate-500 font-medium mt-1">
-                            Manage and monitor your product inventory
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <button 
-                            onClick={() => navigate(`${basePath}/add`)}
-                            className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm shadow-indigo-200 transition-all active:scale-[0.98] text-sm font-semibold w-full sm:w-auto"
-                        >
-                            <Icon name="plus" className="w-4 h-4" />
-                            <span>Add {schema.table["auroparts-product"].label.singular}</span>
-                        </button>
-                    </div>
-                </div>
+                <TableHeader 
+                    title={schema.table["auroparts-product"].label.pulular}
+                    description="Manage and monitor your product inventory"
+                    onAddRow={handleAddRow}
+                    onAddProduct={() => navigate(`${basePath}/add`)}
+                    addProductLabel={schema.table["auroparts-product"].label.singular}
+                />
 
-                {/* Filters Row */}
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="relative flex-1 min-w-[240px]">
-                        <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input 
-                            type="text" 
-                            placeholder="Search by ID, Title, or Identifier..."
-                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm transition-all"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status:</span>
-                            <select 
-                                value={filters.status}
-                                onChange={(e) => setFilters({ status: e.target.value })}
-                                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                            >
-                                <option value="all">All Status</option>
-                                {statusOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Parent ID:</span>
-                            <select 
-                                value={filters.parentId}
-                                onChange={(e) => setFilters({ parentId: e.target.value })}
-                                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                            >
-                                <option value="all">All Parents</option>
-                                {parentIdOptions.map(id => (
-                                    <option key={id} value={id}>{id}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {(filters.status !== 'all' || filters.parentId !== 'all' || searchQuery) && (
-                            <button 
-                                onClick={() => {
-                                    setSearchQuery('');
-                                    setFilters({ status: 'all', parentId: 'all' });
-                                }}
-                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-widest"
-                            >
-                                Reset Filters
-                            </button>
-                        )}
-                    </div>
-                </div>
+                <TableFilters 
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    status={filters.status}
+                    onStatusChange={(status) => setFilters({ status })}
+                    statusOptions={statusOptions}
+                    parentId={filters.parentId}
+                    onParentIdChange={(parentId) => setFilters({ parentId })}
+                    onReset={() => {
+                        setSearchQuery('');
+                        setFilters({ status: 'all', parentId: 'all' });
+                    }}
+                    showReset={filters.status !== 'all' || filters.parentId !== 'all' || !!searchQuery}
+                />
             </div>
 
             {/* Bulk Actions Bar */}
@@ -271,14 +387,15 @@ export const DataTable: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {products.map((product) => (
+                                    {allRows.map((product) => (
                                         <motion.tr 
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             key={product.id}
                                             className={cn(
                                                 "hover:bg-slate-50/80 transition-colors group",
-                                                selectedProductIds.includes(product.id) && "bg-indigo-50/50"
+                                                selectedProductIds.includes(product.id) && "bg-indigo-50/50",
+                                                product.id.startsWith('NEW-') && "bg-indigo-50/30"
                                             )}
                                         >
                                             <td className="pl-8 pr-4 py-4">
@@ -288,12 +405,14 @@ export const DataTable: React.FC = () => {
                                                         checked={selectedProductIds.includes(product.id)}
                                                         onChange={() => toggleSelect(product.id)}
                                                         className="peer sr-only"
+                                                        disabled={product.id.startsWith('NEW-')}
                                                     />
                                                     <div className={cn(
                                                         "w-5 h-5 border-2 rounded-md transition-all duration-200 ease-in-out",
                                                         "border-slate-300 bg-white",
                                                         "peer-checked:bg-indigo-600 peer-checked:border-indigo-600",
-                                                        "group-hover:border-indigo-400"
+                                                        "group-hover:border-indigo-400",
+                                                        product.id.startsWith('NEW-') && "opacity-30 cursor-not-allowed"
                                                     )}></div>
                                                     <svg 
                                                         className={cn(
@@ -311,12 +430,12 @@ export const DataTable: React.FC = () => {
                                             </td>
                                             {cols.map((col: any) => (
                                                 <td key={col.name} className="px-6 py-4 text-sm text-slate-600">
-                                                    {renderCell(col, product, navigate, handleDelete, basePath)}
+                                                    {renderCell(col, product)}
                                                 </td>
                                             ))}
                                         </motion.tr>
                                     ))}
-                                    {products.length === 0 && (
+                                    {allRows.length === 0 && (
                                         <tr>
                                             <td colSpan={cols.length + 1} className="px-6 py-20 text-center">
                                                 <div className="flex flex-col items-center gap-3">
@@ -335,61 +454,16 @@ export const DataTable: React.FC = () => {
                 </div>
             </div>
 
-            {/* Pagination */}
-            <div className="bg-white border-t border-slate-200 px-4 py-4 sm:px-8 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
-                    <div className="flex items-center gap-2">
-                        <span>Show</span>
-                        <select 
-                            className="bg-slate-50 border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                            value={itemsPerPage}
-                            onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                        >
-                            {tableConfig.paginationList.map(num => (
-                                <option key={num} value={num}>{num}</option>
-                            ))}
-                        </select>
-                        <span>entries</span>
-                    </div>
-                    <span className="hidden sm:inline opacity-30">|</span>
-                    <span>Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalProducts)} of {totalProducts}</span>
-                </div>
+            <TablePagination 
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={setItemsPerPage}
+                paginationList={tableConfig.paginationList}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                totalProducts={totalProducts}
+                totalPages={totalPages}
+            />
 
-                <div className="flex items-center gap-2">
-                    <button 
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                        className="p-2 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-all text-slate-600"
-                    >
-                        <Icon name="chevron-left" className="w-5 h-5" />
-                    </button>
-                    <div className="flex items-center gap-1">
-                        {Array.from({ length: totalPages }).map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setCurrentPage(i + 1)}
-                                className={cn(
-                                    "w-8 h-8 rounded-lg text-xs font-bold transition-all",
-                                    currentPage === i + 1 
-                                        ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200" 
-                                        : "text-slate-500 hover:bg-slate-100"
-                                )}
-                            >
-                                {i + 1}
-                            </button>
-                        ))}
-                    </div>
-                    <button 
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                        className="p-2 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-all text-slate-600"
-                    >
-                        <Icon name="chevron-right" className="w-5 h-5" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Confirmation Modal */}
             <ConfirmationModal 
                 isOpen={deleteModal.isOpen}
                 onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
@@ -405,74 +479,3 @@ export const DataTable: React.FC = () => {
         </div>
     );
 };
-
-function renderCell(col: any, product: Product, navigate: any, handleDelete: any, basePath: string) {
-    const value = product[col.col as keyof Product];
-
-    if (col.type === 'image') {
-        return (
-            <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
-                <img 
-                    src={value as string} 
-                    alt="Product" 
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                />
-            </div>
-        );
-    }
-
-    if (col.type === 'action') {
-        return (
-            <div className="flex items-center gap-2">
-                <button 
-                    onClick={() => navigate(`${basePath}/edit/${product.id}`)}
-                    className="p-2 rounded-md hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-colors"
-                    title="Edit"
-                >
-                    <Icon name="edit" className="w-4 h-4" />
-                </button>
-                <button 
-                    onClick={() => handleDelete(product.id)}
-                    className="p-2 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors"
-                    title="Delete"
-                >
-                    <Icon name="trash-2" className="w-4 h-4" />
-                </button>
-            </div>
-        );
-    }
-
-    if (col.type === 'badge') {
-        return (
-            <span className={cn(
-                "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                value === 'variation' 
-                    ? "bg-indigo-50 text-indigo-600 border-indigo-100" 
-                    : "bg-slate-50 text-slate-600 border-slate-100"
-            )}>
-                {value as string}
-            </span>
-        );
-    }
-
-    if (col.col === 'status') {
-        return (
-            <span className={cn(
-                "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                value === 'publish' 
-                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
-                    : "bg-amber-50 text-amber-600 border border-amber-100"
-            )}>
-                <span className={cn("w-1.5 h-1.5 rounded-full mr-1.5", value === 'publish' ? "bg-emerald-500" : "bg-amber-500")}></span>
-                {value as string}
-            </span>
-        );
-    }
-
-    if (col.col === 'id' || col.col === 'identifier') {
-        return <span className="font-mono text-xs font-semibold text-slate-400">{value as string}</span>;
-    }
-
-    return <span className="font-medium text-slate-700">{value as string}</span>;
-}

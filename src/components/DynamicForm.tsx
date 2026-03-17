@@ -160,9 +160,10 @@ export const DynamicForm: React.FC = () => {
                     title: (formData.item_name as string) || 'Untitled Product'
                 } as Product;
                 await addProduct(newProduct);
+                // If it's a new product, we might want to reset the form or navigate
+                // But the user said "no refresh", so we'll just stay here.
+                // Optionally reset form: setFormData(initialData);
             }
-
-            setTimeout(() => navigate(basePath), 1500);
         } catch (error) {
             // Error is handled in store
         } finally {

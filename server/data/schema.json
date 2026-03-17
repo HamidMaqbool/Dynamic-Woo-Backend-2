@@ -15,6 +15,7 @@
             ],
             "table": {
                 "type": "main",
+                "updateMode": "manual",
                 "paginationPerPage": 10,
                 "paginationList": [10, 20, 50, 100],
                 "cols": [
@@ -23,8 +24,8 @@
                     { "name": "Type", "sortable": true, "col": "product_type", "type": "badge" },
                     { "name": "AuropartsID", "sortable": true, "searchable": true, "col": "identifier" },
                     { "name": "Parent", "sortable": true, "searchable": true, "col": "parent_id" },
-                    { "name": "Title", "sortable": true, "searchable": true, "col": "title" },
-                    { "name": "Status", "sortable": true, "col": "status", "width": "100px" },
+                    { "name": "Title", "sortable": true, "searchable": true, "col": "title", "columnType": "text", "autoUpdate": true },
+                    { "name": "Status", "sortable": true, "col": "status", "width": "120px", "columnType": "select" },
                     { "name": "Created Date", "sortable": true, "col": "created_at" },
                     { "name": "Action", "sortable": true, "col": ["edit", "delete"], "type": "action", "width": "200px" }
                 ]
