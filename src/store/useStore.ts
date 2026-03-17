@@ -61,6 +61,7 @@ interface CRMState {
     fetchSidebar: () => Promise<void>;
     fetchDashboard: () => Promise<void>;
     fetchSettings: () => Promise<void>;
+    updateSettings: (settings: any) => Promise<void>;
     fetchSchema: () => Promise<void>;
     fetchRoutes: () => Promise<void>;
     fetchProductById: (id: string) => Promise<Product | null>;
@@ -152,6 +153,23 @@ export const useCRMStore = create<CRMState>((set, get) => ({
             const data = await apiFetch('/api/settings');
             set({ settingsData: data });
         } catch (error) {}
+    },
+
+    updateSettings: async (settings: any) => {
+        set({ isLoading: true });
+        try {
+            const data = await apiFetch('/api/settings', {
+                method: 'PUT',
+                body: JSON.stringify(settings)
+            });
+            set({ 
+                settingsData: data, 
+                isLoading: false,
+                notification: { message: 'Settings updated successfully', type: 'success' }
+            });
+        } catch (error) {
+            set({ isLoading: false });
+        }
     },
 
     fetchSchema: async () => {

@@ -10,7 +10,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({ className }) => {
   return (
     <div 
       className={cn(
-        "animate-pulse bg-slate-200 rounded-md",
+        "animate-pulse bg-[var(--skeleton-bg)] rounded-md",
         className
       )} 
     />
@@ -20,13 +20,13 @@ export const Skeleton: React.FC<SkeletonProps> = ({ className }) => {
 export const TableSkeleton: React.FC = () => {
   return (
     <div className="space-y-4 w-full">
-      <div className="flex items-center justify-between px-6 py-4 bg-slate-50/50 border-b border-slate-200">
+      <div className="flex items-center justify-between px-6 py-4 bg-[var(--bg-main)] border-b border-[var(--border-color)]">
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-4 w-24" />
         ))}
       </div>
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div key={i} className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] opacity-50">
           <Skeleton className="h-10 w-10 rounded-lg" />
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-4 w-24" />

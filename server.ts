@@ -177,6 +177,12 @@ async function startServer() {
     res.json(data);
   });
 
+  app.put("/api/settings", (req, res) => {
+    const data = req.body;
+    fs.writeFileSync(path.join(process.cwd(), "server/data/settings.json"), JSON.stringify(data, null, 2));
+    res.json(data);
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { 
   DndContext, 
@@ -20,7 +19,7 @@ import {
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { X, Upload, GripVertical, Plus } from 'lucide-react';
+import { X, Upload, GripVertical, Plus, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 interface GalleryFieldProps {
@@ -33,12 +32,13 @@ interface GalleryFieldProps {
 interface SortableItemProps {
   id: string;
   url: string;
+  index: number;
   onRemove: (url: string) => void;
   readOnly?: boolean;
   isDragging?: boolean;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ id, url, onRemove, readOnly, isDragging }) => {
+const SortableItem: React.FC<SortableItemProps> = ({ id, url, index, onRemove, readOnly, isDragging }) => {
   const {
     attributes,
     listeners,
@@ -54,12 +54,15 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, url, onRemove, readOnly
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const isFeatured = index === 0;
+
   return (
     <div 
       ref={setNodeRef} 
       style={style} 
       className={cn(
-        "relative group aspect-square rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm transition-all",
+        "relative group rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm transition-all",
+        isFeatured ? "col-span-2 row-span-2 aspect-square" : "aspect-square",
         !readOnly && "hover:border-indigo-400 hover:shadow-md"
       )}
     >
@@ -90,10 +93,19 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, url, onRemove, readOnly
         </>
       )}
       
-      {/* Index Badge */}
-      <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-slate-900/50 backdrop-blur-sm text-white text-[10px] font-bold rounded-md">
-        {parseInt(id.split('-')[1]) + 1}
-      </div>
+      {/* Featured Badge */}
+      {isFeatured && (
+        <div className="absolute bottom-3 left-3 px-3 py-1 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
+          Featured
+        </div>
+      )}
+
+      {/* Index Badge (for non-featured) */}
+      {!isFeatured && (
+        <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-slate-900/50 backdrop-blur-sm text-white text-[10px] font-bold rounded-md">
+          {index + 1}
+        </div>
+      )}
     </div>
   );
 };
@@ -127,8 +139,8 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
     setActiveId(null);
 
     if (over && active.id !== over.id) {
-      const oldIndex = value.indexOf(active.id.toString().split('|')[1]);
-      const newIndex = value.indexOf(over.id.toString().split('|')[1]);
+      const oldIndex = sortableItems.findIndex(item => item.id === active.id);
+      const newIndex = sortableItems.findIndex(item => item.id === over.id);
       
       if (oldIndex !== -1 && newIndex !== -1) {
         onChange(arrayMove(value, oldIndex, newIndex));
@@ -140,7 +152,6 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    // Check max limit
     const remaining = max - value.length;
     const filesToUpload = files.slice(0, remaining);
 
@@ -164,40 +175,46 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
     onChange(value.filter(url => url !== urlToRemove));
   };
 
-  // Create unique IDs for sortable items that include the index to handle duplicate URLs if any
   const sortableItems = value.map((url, index) => ({
-    id: `item-${index}|${url}`,
-    url
+    id: `item-${index}-${url}`,
+    url,
+    index
   }));
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          {value.length} / {max} Images
-        </span>
-        {!readOnly && value.length < max && (
-          <label className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-100 transition-colors cursor-pointer">
-            <Plus className="w-3.5 h-3.5" />
-            Add Images
-            <input 
-              type="file" 
-              multiple 
-              className="sr-only" 
-              onChange={handleUpload} 
-              disabled={isUploading} 
-            />
-          </label>
-        )}
+        <div className="flex items-center gap-2">
+          <ImageIcon className="w-4 h-4 text-slate-400" />
+          <h3 className="text-sm font-bold text-slate-700">Media</h3>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            {value.length} / {max} Images
+          </span>
+          {!readOnly && value.length < max && (
+            <label className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-100 transition-colors cursor-pointer">
+              <Plus className="w-3.5 h-3.5" />
+              Add
+              <input 
+                type="file" 
+                multiple 
+                className="sr-only" 
+                onChange={handleUpload} 
+                disabled={isUploading} 
+              />
+            </label>
+          )}
+        </div>
       </div>
 
       <DndContext 
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
+        onDragStart={!readOnly ? handleDragStart : undefined}
+        onDragEnd={!readOnly ? handleDragEnd : undefined}
       >
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 auto-rows-fr">
           <SortableContext 
             items={sortableItems.map(item => item.id)}
             strategy={rectSortingStrategy}
@@ -207,6 +224,7 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
                 key={item.id} 
                 id={item.id} 
                 url={item.url} 
+                index={item.index}
                 onRemove={removeImage}
                 readOnly={readOnly}
               />
@@ -216,6 +234,7 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
           {!readOnly && value.length < max && (
             <label className={cn(
               "aspect-square rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-2 group hover:border-indigo-300 transition-colors cursor-pointer",
+              value.length === 0 ? "col-span-2 row-span-2" : "",
               isUploading && "opacity-50 cursor-not-allowed"
             )}>
               <input 
@@ -229,8 +248,10 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
                 <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <>
-                  <Upload className="w-6 h-6 text-slate-300 group-hover:text-indigo-400 transition-colors" />
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Upload</span>
+                  <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Upload className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Add Media</span>
                 </>
               )}
             </label>
@@ -249,7 +270,7 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
           {activeId ? (
             <div className="aspect-square rounded-xl overflow-hidden border-2 border-indigo-500 shadow-2xl scale-105">
               <img 
-                src={activeId.split('|')[1]} 
+                src={activeId.split('-').slice(2).join('-')} 
                 alt="Dragging" 
                 className="w-full h-full object-cover" 
                 referrerPolicy="no-referrer" 
@@ -260,14 +281,14 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
       </DndContext>
 
       {value.length === 0 && !isUploading && (
-        <div className="py-12 border-2 border-dashed border-slate-100 rounded-2xl text-center">
-          <Upload className="w-10 h-10 mx-auto text-slate-200 mb-3" />
-          <p className="text-sm text-slate-400 font-medium">No images uploaded yet</p>
-          {!readOnly && (
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-1">
-              Click the button above to add images
-            </p>
-          )}
+        <div className="py-16 border-2 border-dashed border-slate-100 rounded-2xl text-center bg-slate-50/30">
+          <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4">
+            <ImageIcon className="w-8 h-8 text-slate-200" />
+          </div>
+          <p className="text-sm text-slate-500 font-bold">No media uploaded yet</p>
+          <p className="text-xs text-slate-400 mt-1 max-w-[200px] mx-auto">
+            Drag and drop images here, or click to select files
+          </p>
         </div>
       )}
     </div>

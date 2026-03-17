@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useCRMStore } from '../store/useStore';
 import { Dashboard } from '../components/Dashboard';
-import { DataTable } from '../components/DataTable';
+import { DataTable } from '../components/datatable/DataTable';
 import { DynamicForm } from '../components/DynamicForm';
 import { UsagePage } from '../components/UsagePage';
 import { Settings } from '../components/Settings';

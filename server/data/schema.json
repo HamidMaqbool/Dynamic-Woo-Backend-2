@@ -20,14 +20,14 @@
                 "paginationList": [10, 20, 50, 100],
                 "cols": [
                     { "name": "ID", "sortable": true, "col": "id", "searchable": true, "width": "80px" },
-                    { "name": "Image", "sortable": false, "col": "image", "type": "image" },
-                    { "name": "Type", "sortable": true, "col": "product_type", "type": "badge" },
-                    { "name": "AuropartsID", "sortable": true, "searchable": true, "col": "identifier" },
-                    { "name": "Parent", "sortable": true, "searchable": true, "col": "parent_id" },
-                    { "name": "Title", "sortable": true, "searchable": true, "col": "title", "columnType": "text", "autoUpdate": true },
-                    { "name": "Status", "sortable": true, "col": "status", "width": "120px", "columnType": "select" },
-                    { "name": "Created Date", "sortable": true, "col": "created_at" },
-                    { "name": "Action", "sortable": true, "col": ["edit", "delete"], "type": "action", "width": "200px" }
+                    { "name": "Image", "sortable": false, "col": "image", "type": "image", "width": "80px" },
+                    { "name": "Type", "sortable": true, "col": "product_type", "type": "badge", "width": "100px" },
+                    { "name": "AuropartsID", "sortable": true, "searchable": true, "col": "identifier", "width": "150px" },
+                    { "name": "Parent", "sortable": true, "searchable": true, "col": "parent_id", "width": "120px" },
+                    { "name": "Title", "sortable": true, "searchable": true, "col": "title", "columnType": "text", "autoUpdate": true, "width": "300px" },
+                    { "name": "Status", "sortable": true, "col": "status", "width": "150px", "columnType": "select" },
+                    { "name": "Created Date", "sortable": true, "col": "created_at", "width": "150px" },
+                    { "name": "Action", "sortable": true, "col": ["edit", "delete"], "type": "action", "width": "150px" }
                 ]
             }
         }

@@ -126,14 +126,34 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ item, closeMobile, isCollapse
 };
 
 export const Sidebar: React.FC = () => {
-    const { sidebarData, isSidebarLoading, fetchSidebar, logout, user } = useCRMStore();
+    const { sidebarData, isSidebarLoading, fetchSidebar, settingsData, fetchSettings, logout, user } = useCRMStore();
     const [isOpen, setIsOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const location = useLocation();
 
     useEffect(() => {
-        fetchSidebar();
-    }, [fetchSidebar]);
+        if (sidebarData.length === 0) {
+            fetchSidebar();
+        }
+        if (!settingsData) {
+            fetchSettings();
+        }
+    }, [fetchSidebar, fetchSettings, settingsData, sidebarData.length]);
+
+    useEffect(() => {
+        if (settingsData && settingsData.tabs) {
+            const appearanceTab = settingsData.tabs.find((t: any) => t.id === 'appearance');
+            if (appearanceTab) {
+                const sidebarSection = appearanceTab.sections.find((s: any) => s.title === 'Sidebar');
+                if (sidebarSection) {
+                    const collapsedField = sidebarSection.fields.find((f: any) => f.name === 'sidebarCollapsed');
+                    if (collapsedField) {
+                        setIsCollapsed(!!collapsedField.value);
+                    }
+                }
+            }
+        }
+    }, [settingsData]);
 
     const SidebarContent = ({ collapsed = false }: { collapsed?: boolean }) => (
         <div className="flex flex-col h-full bg-slate-900 text-slate-300 border-r border-slate-800">
@@ -150,7 +170,11 @@ export const Sidebar: React.FC = () => {
             </div>
 
             {/* Nav */}
-            <nav className={cn("flex-1 p-6 space-y-2 overflow-y-auto custom-scrollbar", collapsed && "p-2")}>
+            <nav className={cn(
+                "flex-1 p-6 space-y-2 custom-scrollbar", 
+                collapsed ? "p-2 overflow-y-visible" : "overflow-y-auto",
+                collapsed && "flex flex-col items-center"
+            )}>
                 {isSidebarLoading ? (
                     <SidebarSkeleton />
                 ) : (
@@ -164,6 +188,16 @@ export const Sidebar: React.FC = () => {
                     ))
                 )}
             </nav>
+
+            {/* Collapse Toggle */}
+            <div className="p-4 border-t border-slate-800 hidden md:block">
+                <button 
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="w-full flex items-center justify-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+                >
+                    <Icon name={collapsed ? "chevron-right" : "chevron-left"} className="w-5 h-5" />
+                </button>
+            </div>
 
             {/* User Profile */}
             {!collapsed && user && (

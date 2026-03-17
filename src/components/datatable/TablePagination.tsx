@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Icon } from './Icon';
-import { cn } from '../utils/cn';
+import { Icon } from '../Icon';
+import { cn } from '../../utils/cn';
 
 interface TablePaginationProps {
     itemsPerPage: number;

@@ -1,24 +1,17 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCRMStore, Product } from '../store/useStore';
+import { useCRMStore, Product } from '../../store/useStore';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../utils/cn';
-import { Icon } from './Icon';
-import { TableSkeleton } from './Skeleton';
-import { ConfirmationModal } from './ConfirmationModal';
+import { cn } from '../../utils/cn';
+import { Icon } from '../Icon';
+import { TableSkeleton } from '../Skeleton';
+import { ConfirmationModal } from '../ConfirmationModal';
 import { TableHeader } from './TableHeader';
 import { TableFilters } from './TableFilters';
 import { TablePagination } from './TablePagination';
 
-// Column Types
-import { TextColumn } from './column-types/TextColumn';
-import { SelectColumn } from './column-types/SelectColumn';
-import { ImageColumn } from './column-types/ImageColumn';
-import { BadgeColumn } from './column-types/BadgeColumn';
-import { StatusColumn } from './column-types/StatusColumn';
-import { ActionColumn } from './column-types/ActionColumn';
-import { ManualUpdateColumn } from './column-types/ManualUpdateColumn';
+import { DataTableRow } from './DataTableRow';
 
 export const DataTable: React.FC = () => {
     const navigate = useNavigate();
@@ -70,11 +63,6 @@ export const DataTable: React.FC = () => {
     const updateMode = tableConfig.updateMode || 'auto';
     const cols = [...tableConfig.cols];
 
-    // Add manual update column if needed
-    if (updateMode === 'manual') {
-        cols.push({ name: "Update", col: "manual_update", type: "manual_update", width: "100px" });
-    }
-
     // Get filter options from schema
     const statusOptions = (schema.form["auroparts-product"][0].fields.find((f: any) => f.name === 'status') as any)?.options || [];
 
@@ -99,18 +87,34 @@ export const DataTable: React.FC = () => {
     const handleLocalChange = (productId: string, field: string, value: any, autoUpdate?: boolean) => {
         const isNew = productId.startsWith('NEW-');
         
-        // If column has autoUpdate attribute, it triggers update on change regardless of global updateMode
-        // (unless it's a new row which hasn't been saved yet)
+        // Update local state first
+        setLocalChanges(prev => ({
+            ...prev,
+            [productId]: {
+                ...(prev[productId] || {}),
+                [field]: value
+            }
+        }));
+
+        // If autoUpdate is true or global updateMode is auto, and it's not a new row, trigger the store update
         if ((autoUpdate || updateMode === 'auto') && !isNew) {
             updateProduct(productId, { [field]: value });
-        } else {
-            setLocalChanges(prev => ({
-                ...prev,
-                [productId]: {
-                    ...(prev[productId] || {}),
-                    [field]: value
-                }
-            }));
+            
+            // If it was an auto-update, we can clear the local change for this specific field
+            if (autoUpdate || updateMode === 'auto') {
+                setLocalChanges(prev => {
+                    const next = { ...prev };
+                    if (next[productId]) {
+                        const { [field]: _, ...rest } = next[productId];
+                        if (Object.keys(rest).length === 0) {
+                            delete next[productId];
+                        } else {
+                            next[productId] = rest;
+                        }
+                    }
+                    return next;
+                });
+            }
         }
     };
 
@@ -172,89 +176,6 @@ export const DataTable: React.FC = () => {
         } else if (deleteModal.id) {
             deleteProduct(deleteModal.id);
         }
-    };
-
-    const renderCell = (col: any, product: Product) => {
-        const productId = product.id;
-        const fieldName = col.col as string;
-        const originalValue = product[fieldName as keyof Product];
-        const localValue = localChanges[productId]?.[fieldName];
-        const value = localValue !== undefined ? localValue : originalValue;
-
-        // Default to simple text if columnType is not given but it's an editable field
-        // We assume fields with col name like 'title' or 'status' might be editable if columnType is missing
-        // but for now let's stick to explicit columnType or default to span for non-editable
-        
-        const columnType = col.columnType || (['title', 'status'].includes(fieldName) ? 'text' : undefined);
-
-        if (columnType === 'text') {
-            return (
-                <TextColumn 
-                    value={value as string}
-                    onChange={(val) => handleLocalChange(productId, fieldName, val, col.autoUpdate)}
-                    placeholder={`Enter ${col.name}...`}
-                />
-            );
-        }
-
-        if (columnType === 'select') {
-            return (
-                <SelectColumn 
-                    value={value as string}
-                    onChange={(val) => handleLocalChange(productId, fieldName, val, col.autoUpdate)}
-                    options={statusOptions}
-                />
-            );
-        }
-
-        if (col.type === 'manual_update') {
-            return (
-                <ManualUpdateColumn 
-                    hasChanges={!!localChanges[productId]}
-                    isNew={productId.startsWith('NEW-')}
-                    onUpdate={() => handleManualUpdate(productId)}
-                />
-            );
-        }
-
-        if (col.type === 'image') {
-            return <ImageColumn src={value as string} />;
-        }
-
-        if (col.type === 'action') {
-            const isNew = productId.startsWith('NEW-');
-            if (isNew) {
-                return (
-                    <button 
-                        onClick={() => handleDelete(productId)}
-                        className="p-2 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors"
-                        title="Remove Row"
-                    >
-                        <Icon name="x" className="w-4 h-4" />
-                    </button>
-                );
-            }
-            return (
-                <ActionColumn 
-                    onEdit={() => navigate(`${basePath}/edit/${product.id}`)}
-                    onDelete={() => handleDelete(product.id)}
-                />
-            );
-        }
-
-        if (col.type === 'badge') {
-            return <BadgeColumn value={value as string} type={value === 'variation' ? 'indigo' : 'slate'} />;
-        }
-
-        if (col.col === 'status') {
-            return <StatusColumn status={value as string} />;
-        }
-
-        if (col.col === 'id' || col.col === 'identifier') {
-            return <span className="font-mono text-xs font-semibold text-slate-400">{value as string}</span>;
-        }
-
-        return <span className="font-medium text-slate-700">{value as string}</span>;
     };
 
     const allRows = [...newRows, ...products];
@@ -388,52 +309,19 @@ export const DataTable: React.FC = () => {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {allRows.map((product) => (
-                                        <motion.tr 
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
+                                        <DataTableRow 
                                             key={product.id}
-                                            className={cn(
-                                                "hover:bg-slate-50/80 transition-colors group",
-                                                selectedProductIds.includes(product.id) && "bg-indigo-50/50",
-                                                product.id.startsWith('NEW-') && "bg-indigo-50/30"
-                                            )}
-                                        >
-                                            <td className="pl-8 pr-4 py-4">
-                                                <label className="relative flex items-center justify-center cursor-pointer group select-none">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={selectedProductIds.includes(product.id)}
-                                                        onChange={() => toggleSelect(product.id)}
-                                                        className="peer sr-only"
-                                                        disabled={product.id.startsWith('NEW-')}
-                                                    />
-                                                    <div className={cn(
-                                                        "w-5 h-5 border-2 rounded-md transition-all duration-200 ease-in-out",
-                                                        "border-slate-300 bg-white",
-                                                        "peer-checked:bg-indigo-600 peer-checked:border-indigo-600",
-                                                        "group-hover:border-indigo-400",
-                                                        product.id.startsWith('NEW-') && "opacity-30 cursor-not-allowed"
-                                                    )}></div>
-                                                    <svg 
-                                                        className={cn(
-                                                            "absolute w-3.5 h-3.5 text-white transition-all duration-200 ease-in-out transform",
-                                                            "opacity-0 scale-50",
-                                                            "peer-checked:opacity-100 peer-checked:scale-100"
-                                                        )} 
-                                                        fill="none" 
-                                                        stroke="currentColor" 
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                </label>
-                                            </td>
-                                            {cols.map((col: any) => (
-                                                <td key={col.name} className="px-6 py-4 text-sm text-slate-600">
-                                                    {renderCell(col, product)}
-                                                </td>
-                                            ))}
-                                        </motion.tr>
+                                            product={product}
+                                            cols={cols}
+                                            selectedProductIds={selectedProductIds}
+                                            toggleSelect={toggleSelect}
+                                            localChanges={localChanges}
+                                            statusOptions={statusOptions}
+                                            handleLocalChange={handleLocalChange}
+                                            handleManualUpdate={handleManualUpdate}
+                                            handleDelete={handleDelete}
+                                            onEdit={(id) => navigate(`${basePath}/edit/${id}`)}
+                                        />
                                     ))}
                                     {allRows.length === 0 && (
                                         <tr>

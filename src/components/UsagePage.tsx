@@ -8,11 +8,11 @@ import { motion } from 'motion/react';
 const FIELD_TYPE_DOCS = {
     text: {
         description: "Standard single-line text input for names, titles, and short descriptions.",
-        options: ["placeholder", "valid (required)", "tooltip"]
+        options: ["placeholder", "valid (required)", "tooltip", "readOnly"]
     },
     number: {
         description: "Numeric input field for prices, quantities, and measurements.",
-        options: ["placeholder", "valid (required)", "tooltip"]
+        options: ["placeholder", "valid (required)", "tooltip", "prefix", "suffix"]
     },
     select: {
         description: "Dropdown menu for selecting a single value from a predefined list.",
@@ -26,9 +26,40 @@ const FIELD_TYPE_DOCS = {
         description: "Toggle switch or checkbox for boolean values (true/false).",
         options: ["valid (required)", "tooltip"]
     },
-    date: {
-        description: "Date picker for selecting specific dates from a calendar.",
+    image: {
+        description: "Single image upload field with preview and removal capability.",
         options: ["valid (required)", "tooltip"]
+    },
+    gallery: {
+        description: "Shopify-style multi-image upload with drag-and-drop sorting and featured image selection.",
+        options: ["max (default 10)", "tooltip", "readOnly"]
+    },
+    color: {
+        description: "Color picker for selecting hex codes with visual preview.",
+        options: ["tooltip"]
+    },
+    repeater: {
+        description: "Dynamic list of fields that can be added, removed, and reordered.",
+        options: ["fields (nested field definitions)"]
+    },
+    variation: {
+        description: "Complex field for managing product variations, prices, and inventory.",
+        options: ["columns (table definition)"]
+    }
+};
+
+const DATATABLE_DOCS = {
+    DataTable: {
+        description: "The core table component that renders rows and columns based on schema.",
+        features: ["Sorting", "Filtering", "Pagination", "Bulk Actions"]
+    },
+    columnTypes: {
+        description: "Specialized cell renderers for different data types.",
+        types: ["Badge", "Status", "Image", "Text", "Select", "Action", "ManualUpdate"]
+    },
+    TableFilters: {
+        description: "Search and filter controls for the data table.",
+        features: ["Search Query", "Status Filter", "Parent ID Filter"]
     }
 };
 
@@ -110,6 +141,40 @@ export const UsagePage: React.FC = () => {
                                             {doc.options.map(opt => (
                                                 <span key={opt} className="px-2 py-1 bg-slate-50 text-slate-500 rounded text-[10px] font-medium border border-slate-100">
                                                     {opt}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* DataTable Documentation Section */}
+                    <section className="space-y-6">
+                        <div className="flex items-center gap-2">
+                            <Layout className="w-5 h-5 text-emerald-600" />
+                            <h2 className="text-xl font-bold text-slate-900">DataTable Components</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {Object.entries(DATATABLE_DOCS).map(([name, doc]: [string, any], idx) => (
+                                <motion.div 
+                                    key={name}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: idx * 0.1 }}
+                                    className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"
+                                >
+                                    <h3 className="text-sm font-bold text-slate-900 mb-2">{name}</h3>
+                                    <p className="text-sm text-slate-600 mb-4">{doc.description}</p>
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                            {doc.features ? 'Key Features' : 'Available Types'}
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(doc.features || doc.types).map((item: string) => (
+                                                <span key={item} className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-[10px] font-medium border border-emerald-100">
+                                                    {item}
                                                 </span>
                                             ))}
                                         </div>

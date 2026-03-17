@@ -16,6 +16,7 @@
     --text-muted: #64748B;
     --border-color: #E2E8F0;
     --accent-color: #4F46E5;
+    --skeleton-bg: #E2E8F0;
   }
 
   .dark {
@@ -25,6 +26,7 @@
     --text-muted: #94A3B8;
     --border-color: #334155;
     --accent-color: #818CF8;
+    --skeleton-bg: #334155;
   }
 
   .red {
@@ -34,6 +36,7 @@
     --text-muted: #B91C1C;
     --border-color: #FEE2E2;
     --accent-color: #DC2626;
+    --skeleton-bg: #FEE2E2;
   }
 
   .green {
@@ -43,6 +46,7 @@
     --text-muted: #059669;
     --border-color: #DCFCE7;
     --accent-color: #10B981;
+    --skeleton-bg: #DCFCE7;
   }
 
   body {

@@ -1,0 +1,49 @@
+
+import React from 'react';
+import { Icon } from '../Icon';
+
+interface RowActionsProps {
+    onEdit: () => void;
+    onDelete: () => void;
+    onUpdate?: () => void;
+    hasChanges?: boolean;
+    isNew?: boolean;
+}
+
+export const RowActions: React.FC<RowActionsProps> = ({ 
+    onEdit, 
+    onDelete, 
+    onUpdate, 
+    hasChanges, 
+    isNew 
+}) => {
+    return (
+        <div className="flex items-center gap-2">
+            {onUpdate && (hasChanges || isNew) && (
+                <button 
+                    onClick={onUpdate}
+                    className="p-2 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                    title={isNew ? "Save New Product" : "Save Changes"}
+                >
+                    <Icon name="save" className="w-4 h-4" />
+                </button>
+            )}
+            {!isNew && (
+                <button 
+                    onClick={onEdit}
+                    className="p-2 rounded-md hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-colors"
+                    title="Edit"
+                >
+                    <Icon name="edit" className="w-4 h-4" />
+                </button>
+            )}
+            <button 
+                onClick={onDelete}
+                className="p-2 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors"
+                title={isNew ? "Remove Row" : "Delete"}
+            >
+                <Icon name={isNew ? "x" : "trash-2"} className="w-4 h-4" />
+            </button>
+        </div>
+    );
+};
