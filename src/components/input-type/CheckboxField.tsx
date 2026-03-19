@@ -32,14 +32,14 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
         />
         <div className={cn(
           "w-5 h-5 border-2 rounded-md transition-all duration-200 ease-in-out",
-          "border-slate-300 bg-white",
-          "peer-checked:bg-indigo-600 peer-checked:border-indigo-600",
-          "peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-2",
-          "group-hover:border-indigo-400"
+          "border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600",
+          "peer-checked:border-accent",
+          "peer-focus-visible:ring-2 peer-focus-visible:ring-accent/50 peer-focus-visible:ring-offset-2",
+          "group-hover:border-accent/60"
         )}></div>
         <svg 
           className={cn(
-            "absolute w-3.5 h-3.5 text-white transition-all duration-200 ease-in-out transform",
+            "absolute w-3.5 h-3.5 text-accent transition-all duration-200 ease-in-out transform",
             "opacity-0 scale-50",
             "peer-checked:opacity-100 peer-checked:scale-100"
           )} 

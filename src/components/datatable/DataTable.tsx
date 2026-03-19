@@ -51,6 +51,10 @@ export const DataTable: React.FC = () => {
         isBulk: false
     });
 
+    const tableConfig = schema?.table["auroparts-product"].table;
+    const initialCols = tableConfig?.cols || [];
+    const [visibleColumns, setVisibleColumns] = useState<string[]>(initialCols.map((c: any) => c.name));
+
     useEffect(() => {
         fetchProducts();
     }, [fetchProducts]);
@@ -59,9 +63,16 @@ export const DataTable: React.FC = () => {
         return <TableSkeleton />;
     }
 
-    const tableConfig = schema.table["auroparts-product"].table;
     const updateMode = tableConfig.updateMode || 'auto';
-    const cols = [...tableConfig.cols];
+    const cols = initialCols.filter((c: any) => visibleColumns.includes(c.name));
+
+    const toggleColumn = (name: string) => {
+        setVisibleColumns(prev => 
+            prev.includes(name) 
+                ? prev.filter(n => n !== name) 
+                : [...prev, name]
+        );
+    };
 
     // Get filter options from schema
     const statusOptions = (schema.form["auroparts-product"][0].fields.find((f: any) => f.name === 'status') as any)?.options || [];
@@ -205,6 +216,8 @@ export const DataTable: React.FC = () => {
                         setFilters({ status: 'all', parentId: 'all' });
                     }}
                     showReset={filters.status !== 'all' || filters.parentId !== 'all' || !!searchQuery}
+                    columns={initialCols.map((c: any) => ({ name: c.name, visible: visibleColumns.includes(c.name) }))}
+                    onToggleColumn={toggleColumn}
                 />
             </div>
 
@@ -212,27 +225,52 @@ export const DataTable: React.FC = () => {
             <AnimatePresence>
                 {selectedProductIds.length > 0 && (
                     <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="bg-indigo-600 px-8 py-3 flex items-center justify-between text-white overflow-hidden"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="bg-accent px-8 py-4 flex items-center justify-between text-white shadow-lg z-20"
                     >
-                        <div className="flex items-center gap-6">
-                            <span className="text-sm font-bold">{selectedProductIds.length} items selected</span>
-                            <div className="h-4 w-px bg-indigo-400" />
-                            <button 
-                                onClick={handleBulkDelete}
-                                className="flex items-center gap-2 text-xs font-bold hover:text-rose-200 transition-colors"
-                            >
-                                <Icon name="trash-2" className="w-4 h-4" />
-                                Delete Selected
-                            </button>
+                        <div className="flex items-center gap-8">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
+                                    {selectedProductIds.length}
+                                </div>
+                                <span className="text-sm font-bold uppercase tracking-wider">Items Selected</span>
+                            </div>
+                            
+                            <div className="h-6 w-px bg-white/20" />
+                            
+                            <div className="flex items-center gap-4">
+                                <button 
+                                    onClick={handleBulkDelete}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/40 text-xs font-bold transition-all border border-rose-400/30"
+                                >
+                                    <Icon name="trash-2" className="w-4 h-4" />
+                                    Delete
+                                </button>
+                                
+                                <button 
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold transition-all border border-white/10"
+                                >
+                                    <Icon name="edit" className="w-4 h-4" />
+                                    Edit Status
+                                </button>
+
+                                <button 
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold transition-all border border-white/10"
+                                >
+                                    <Icon name="upload" className="w-4 h-4" />
+                                    Export
+                                </button>
+                            </div>
                         </div>
+                        
                         <button 
                             onClick={() => setSelectedProductIds([])}
-                            className="text-xs font-bold hover:underline"
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 text-xs font-bold transition-all"
                         >
-                            Clear Selection
+                            <Icon name="x" className="w-4 h-4" />
+                            Cancel
                         </button>
                     </motion.div>
                 )}
@@ -250,7 +288,7 @@ export const DataTable: React.FC = () => {
                             className="absolute inset-0 z-10 bg-white/40 backdrop-blur-[2px] flex items-center justify-center"
                         >
                             <div className="flex flex-col items-center gap-3 bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
-                                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                                <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
                                 <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Updating Data...</span>
                             </div>
                         </motion.div>
@@ -278,13 +316,13 @@ export const DataTable: React.FC = () => {
                                                 />
                                                 <div className={cn(
                                                     "w-5 h-5 border-2 rounded-md transition-all duration-200 ease-in-out",
-                                                    "border-slate-300 bg-white",
-                                                    "peer-checked:bg-indigo-600 peer-checked:border-indigo-600",
-                                                    "group-hover:border-indigo-400"
+                                                    "border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600",
+                                                    "peer-checked:border-accent",
+                                                    "group-hover:border-accent/60"
                                                 )}></div>
                                                 <svg 
                                                     className={cn(
-                                                        "absolute w-3.5 h-3.5 text-white transition-all duration-200 ease-in-out transform",
+                                                        "absolute w-3.5 h-3.5 text-accent transition-all duration-200 ease-in-out transform",
                                                         "opacity-0 scale-50",
                                                         "peer-checked:opacity-100 peer-checked:scale-100"
                                                     )} 

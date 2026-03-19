@@ -112,7 +112,7 @@ export const Settings: React.FC = () => {
                         </button>
                         <button 
                             onClick={handleSave}
-                            className="px-8 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-200 transition-all"
+                            className="px-8 py-2.5 text-sm font-bold text-white bg-accent hover:opacity-90 rounded-xl shadow-lg shadow-accent/20 transition-all"
                         >
                             Save Changes
                         </button>
@@ -130,11 +130,11 @@ export const Settings: React.FC = () => {
                             className={cn(
                                 "flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-all border-b-2 whitespace-nowrap",
                                 activeTab === tab.id
-                                    ? "border-indigo-600 text-indigo-600"
+                                    ? "border-accent text-accent"
                                     : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200"
                             )}
                         >
-                            <Icon name={tab.icon || 'settings'} className={cn("w-4 h-4", activeTab === tab.id ? "text-indigo-600" : "text-slate-400")} />
+                            <Icon name={tab.icon || 'settings'} className={cn("w-4 h-4", activeTab === tab.id ? "text-accent" : "text-slate-400")} />
                             {tab.label}
                         </button>
                     ))}

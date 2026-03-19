@@ -1,25 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { 
-  DndContext, 
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragStartEvent,
-  DragOverlay,
-  defaultDropAnimationSideEffects
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-  useSortable
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import React, { useState, useRef } from 'react';
 import { X, Upload, GripVertical, Plus, Image as ImageIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../utils/cn';
 
 interface GalleryFieldProps {
@@ -29,124 +10,17 @@ interface GalleryFieldProps {
   readOnly?: boolean;
 }
 
-interface SortableItemProps {
-  id: string;
-  url: string;
-  index: number;
-  onRemove: (url: string) => void;
-  readOnly?: boolean;
-  isDragging?: boolean;
-}
-
-const SortableItem: React.FC<SortableItemProps> = ({ id, url, index, onRemove, readOnly, isDragging }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : 1,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const isFeatured = index === 0;
-
-  return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
-      className={cn(
-        "relative group rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm transition-all",
-        isFeatured ? "col-span-2 row-span-2 aspect-square" : "aspect-square",
-        !readOnly && "hover:border-indigo-400 hover:shadow-md"
-      )}
-    >
-      <img 
-        src={url} 
-        alt="Gallery item" 
-        className="w-full h-full object-cover" 
-        referrerPolicy="no-referrer" 
-      />
-      
-      {!readOnly && (
-        <>
-          <div 
-            {...attributes} 
-            {...listeners}
-            className="absolute top-2 left-2 p-1.5 bg-white/90 backdrop-blur-sm rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-slate-500 hover:text-indigo-600"
-          >
-            <GripVertical className="w-4 h-4" />
-          </div>
-          
-          <button
-            type="button"
-            onClick={() => onRemove(url)}
-            className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-rose-600"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </>
-      )}
-      
-      {/* Featured Badge */}
-      {isFeatured && (
-        <div className="absolute bottom-3 left-3 px-3 py-1 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
-          Featured
-        </div>
-      )}
-
-      {/* Index Badge (for non-featured) */}
-      {!isFeatured && (
-        <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-slate-900/50 backdrop-blur-sm text-white text-[10px] font-bold rounded-md">
-          {index + 1}
-        </div>
-      )}
-    </div>
-  );
-};
-
 export const GalleryField: React.FC<GalleryFieldProps> = ({ 
   value = [], 
   onChange, 
   max = 10, 
   readOnly 
 }) => {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (over && active.id !== over.id) {
-      const oldIndex = sortableItems.findIndex(item => item.id === active.id);
-      const newIndex = sortableItems.findIndex(item => item.id === over.id);
-      
-      if (oldIndex !== -1 && newIndex !== -1) {
-        onChange(arrayMove(value, oldIndex, newIndex));
-      }
-    }
-  };
+  const dragTimeoutRef = useRef<any>(null);
+  const lastReorderTimeRef = useRef<number>(0);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -171,15 +45,64 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
     }
   };
 
-  const removeImage = (urlToRemove: string) => {
-    onChange(value.filter(url => url !== urlToRemove));
+  const removeImage = (indexToRemove: number) => {
+    onChange(value.filter((_, index) => index !== indexToRemove));
   };
 
-  const sortableItems = value.map((url, index) => ({
-    id: `item-${index}-${url}`,
-    url,
-    index
-  }));
+  const onDragStart = (e: React.DragEvent, index: number) => {
+    if (readOnly) return;
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    // Required for Firefox
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const onDragOver = (e: React.DragEvent, index: number) => {
+    if (readOnly) return;
+    e.preventDefault();
+    
+    // Prevent rapid back-and-forth reordering
+    const now = Date.now();
+    if (now - lastReorderTimeRef.current < 200) return;
+
+    if (draggedIndex === null || draggedIndex === index) {
+      if (dragTimeoutRef.current) {
+        clearTimeout(dragTimeoutRef.current);
+        dragTimeoutRef.current = null;
+      }
+      setDragOverIndex(null);
+      return;
+    }
+    
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+      if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+      
+      dragTimeoutRef.current = setTimeout(() => {
+        const newValue = [...value];
+        const item = newValue.splice(draggedIndex, 1)[0];
+        newValue.splice(index, 0, item);
+        
+        lastReorderTimeRef.current = Date.now();
+        onChange(newValue);
+        setDraggedIndex(index);
+      }, 150);
+    }
+  };
+
+  const onDrop = (e: React.DragEvent, index: number) => {
+    if (readOnly) return;
+    e.preventDefault();
+    if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const onDragEnd = () => {
+    if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
 
   return (
     <div className="space-y-4">
@@ -193,7 +116,7 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
             {value.length} / {max} Images
           </span>
           {!readOnly && value.length < max && (
-            <label className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-100 transition-colors cursor-pointer">
+            <label className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 text-accent rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-accent/20 transition-colors cursor-pointer">
               <Plus className="w-3.5 h-3.5" />
               Add
               <input 
@@ -208,77 +131,100 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
         </div>
       </div>
 
-      <DndContext 
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={!readOnly ? handleDragStart : undefined}
-        onDragEnd={!readOnly ? handleDragEnd : undefined}
-      >
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 auto-rows-fr">
-          <SortableContext 
-            items={sortableItems.map(item => item.id)}
-            strategy={rectSortingStrategy}
-          >
-            {sortableItems.map((item) => (
-              <SortableItem 
-                key={item.id} 
-                id={item.id} 
-                url={item.url} 
-                index={item.index}
-                onRemove={removeImage}
-                readOnly={readOnly}
-              />
-            ))}
-          </SortableContext>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 auto-rows-fr">
+        {value.map((url, index) => {
+          const isFeatured = index === 0;
+          const isDragging = draggedIndex === index;
 
-          {!readOnly && value.length < max && (
-            <label className={cn(
-              "aspect-square rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-2 group hover:border-indigo-300 transition-colors cursor-pointer",
-              value.length === 0 ? "col-span-2 row-span-2" : "",
-              isUploading && "opacity-50 cursor-not-allowed"
-            )}>
-              <input 
-                type="file" 
-                multiple 
-                className="sr-only" 
-                onChange={handleUpload} 
-                disabled={isUploading} 
-              />
-              {isUploading ? (
-                <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <>
-                  <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Upload className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Add Media</span>
-                </>
+          return (
+            <motion.div 
+              key={url}
+              layout
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ 
+                layout: { type: "spring", stiffness: 500, damping: 50, mass: 1 },
+                opacity: { duration: 0.2 }
+              }}
+              draggable={!readOnly}
+              onDragStart={(e) => onDragStart(e, index)}
+              onDragOver={(e) => onDragOver(e, index)}
+              onDrop={(e) => onDrop(e, index)}
+              onDragEnd={onDragEnd}
+              className={cn(
+                "relative group rounded-xl overflow-hidden border",
+                isFeatured ? "col-span-2 row-span-2 aspect-square" : "aspect-square",
+                isDragging ? "opacity-0" : "opacity-100",
+                !readOnly && "hover:border-accent hover:shadow-md cursor-move border-slate-200"
               )}
-            </label>
-          )}
-        </div>
+            >
+                <img 
+                  src={url} 
+                  alt="Gallery item" 
+                  className="w-full h-full object-cover pointer-events-none" 
+                  referrerPolicy="no-referrer" 
+                />
+                
+                {!readOnly && (
+                  <>
+                    <div className="absolute top-2 left-2 p-1.5 bg-white/90 backdrop-blur-sm rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-accent">
+                      <GripVertical className="w-4 h-4" />
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(index);
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-rose-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+                
+                {isFeatured && (
+                  <div className="absolute bottom-3 left-3 px-3 py-1 bg-accent text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg">
+                    Featured
+                  </div>
+                )}
 
-        <DragOverlay dropAnimation={{
-          sideEffects: defaultDropAnimationSideEffects({
-            styles: {
-              active: {
-                opacity: '0.5',
-              },
-            },
-          }),
-        }}>
-          {activeId ? (
-            <div className="aspect-square rounded-xl overflow-hidden border-2 border-indigo-500 shadow-2xl scale-105">
-              <img 
-                src={activeId.split('-').slice(2).join('-')} 
-                alt="Dragging" 
-                className="w-full h-full object-cover" 
-                referrerPolicy="no-referrer" 
-              />
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+                {!isFeatured && (
+                  <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-slate-900/50 backdrop-blur-sm text-white text-[10px] font-bold rounded-md">
+                    {index + 1}
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+
+        {!readOnly && value.length < max && (
+          <label className={cn(
+            "aspect-square rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-2 group hover:border-accent transition-colors cursor-pointer",
+            value.length === 0 ? "col-span-2 row-span-2" : "",
+            isUploading && "opacity-50 cursor-not-allowed"
+          )}>
+            <input 
+              type="file" 
+              multiple 
+              className="sr-only" 
+              onChange={handleUpload} 
+              disabled={isUploading} 
+            />
+            {isUploading ? (
+              <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Upload className="w-5 h-5 text-slate-400 group-hover:text-accent transition-colors" />
+                </div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Add Media</span>
+              </>
+            )}
+          </label>
+        )}
+      </div>
 
       {value.length === 0 && !isUploading && (
         <div className="py-16 border-2 border-dashed border-slate-100 rounded-2xl text-center bg-slate-50/30">

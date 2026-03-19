@@ -22,7 +22,7 @@ export const RowActions: React.FC<RowActionsProps> = ({
             {onUpdate && (hasChanges || isNew) && (
                 <button 
                     onClick={onUpdate}
-                    className="p-2 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                    className="p-2 rounded-md bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
                     title={isNew ? "Save New Product" : "Save Changes"}
                 >
                     <Icon name="save" className="w-4 h-4" />
@@ -31,7 +31,7 @@ export const RowActions: React.FC<RowActionsProps> = ({
             {!isNew && (
                 <button 
                     onClick={onEdit}
-                    className="p-2 rounded-md hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-colors"
+                    className="p-2 rounded-md hover:bg-accent/10 text-slate-400 hover:text-accent transition-colors"
                     title="Edit"
                 >
                     <Icon name="edit" className="w-4 h-4" />

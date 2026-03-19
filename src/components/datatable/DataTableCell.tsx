@@ -81,7 +81,7 @@ export const DataTableCell: React.FC<DataTableCellProps> = ({
     }
 
     if (col.type === 'badge') {
-        return <BadgeColumn value={value as string} type={value === 'variation' ? 'indigo' : 'slate'} />;
+        return <BadgeColumn value={value as string} type={value === 'variation' ? 'accent' : 'slate'} />;
     }
 
     if (col.col === 'status' && !col.columnType) {

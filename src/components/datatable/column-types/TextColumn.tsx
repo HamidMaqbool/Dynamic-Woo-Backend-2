@@ -15,7 +15,7 @@ export const TextColumn: React.FC<TextColumnProps> = ({ value, onChange, onBlur,
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             onBlur={onBlur}
-            className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm min-w-[120px]"
+            className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-accent text-sm min-w-[120px]"
             placeholder={placeholder}
         />
     );

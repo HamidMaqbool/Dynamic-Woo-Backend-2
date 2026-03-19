@@ -28,7 +28,7 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
                 <div className="flex items-center gap-2">
                     <span>Show</span>
                     <select 
-                        className="bg-slate-50 border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        className="bg-slate-50 border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent/20"
                         value={itemsPerPage}
                         onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
                     >
@@ -58,7 +58,7 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
                             className={cn(
                                 "w-8 h-8 rounded-lg text-xs font-bold transition-all",
                                 currentPage === i + 1 
-                                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200" 
+                                    ? "bg-accent text-white shadow-sm shadow-accent/20" 
                                     : "text-slate-500 hover:bg-slate-100"
                             )}
                         >

@@ -54,7 +54,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ item, closeMobile, isCollapse
           {!isCollapsed && (
             <Icon 
               name={isExpanded ? 'chevron-down' : 'chevron-right'} 
-              className={cn("w-4 h-4 transition-transform", isExpanded && "text-indigo-400")} 
+              className={cn("w-4 h-4 transition-transform", isExpanded && "text-accent/80")} 
             />
           )}
         </button>
@@ -64,11 +64,11 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ item, closeMobile, isCollapse
           onClick={closeMobile}
           className={cn(
             "w-full flex items-center gap-4 px-4 py-3 text-sm font-semibold transition-all rounded-xl group",
-            isActive(item.path) ? "bg-indigo-600/10 text-indigo-400" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
+            isActive(item.path) ? "bg-accent/10 text-accent" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
             isCollapsed && "justify-center px-0"
           )}
         >
-          {item.icon && <Icon name={item.icon} className={cn("w-5 h-5", isActive(item.path) ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300", isCollapsed && "w-6 h-6")} />}
+          {item.icon && <Icon name={item.icon} className={cn("w-5 h-5", isActive(item.path) ? "text-accent" : "text-slate-500 group-hover:text-slate-300", isCollapsed && "w-6 h-6")} />}
           {!isCollapsed && item.title}
         </Link>
       )}
@@ -90,7 +90,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ item, closeMobile, isCollapse
                 key={idx}
                 to={getRoutePath(child.path)}
                 onClick={closeMobile}
-                className="w-full block text-left px-3 py-2 text-xs font-medium text-slate-400 hover:text-indigo-400 hover:bg-slate-700/50 rounded-lg transition-all"
+                className="w-full block text-left px-3 py-2 text-xs font-medium text-slate-400 hover:text-accent hover:bg-slate-700/50 rounded-lg transition-all"
               >
                 {child.title}
               </Link>
@@ -113,7 +113,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ item, closeMobile, isCollapse
                 key={idx}
                 to={getRoutePath(child.path)}
                 onClick={closeMobile}
-                className="w-full block text-left px-4 py-2 text-xs font-medium text-slate-500 hover:text-indigo-400 transition-colors"
+                className="w-full block text-left px-4 py-2 text-xs font-medium text-slate-500 hover:text-accent transition-colors"
               >
                 {child.title}
               </Link>
@@ -160,11 +160,11 @@ export const Sidebar: React.FC = () => {
             {/* Logo */}
             <div className={cn("p-8 border-b border-slate-800", collapsed && "p-4 flex justify-center")}>
                 <Link to="/dashboard" className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+                    <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center shadow-lg shadow-accent/20 shrink-0">
                         <Icon name="package" className="w-5 h-5 text-white" />
                     </div>
                     {!collapsed && (
-                        <span className="text-xl font-bold tracking-tight text-white">AURO<span className="text-indigo-500">CRM</span></span>
+                        <span className="text-xl font-bold tracking-tight text-white">AURO<span className="text-accent">CRM</span></span>
                     )}
                 </Link>
             </div>
@@ -203,7 +203,7 @@ export const Sidebar: React.FC = () => {
             {!collapsed && user && (
                 <div className="px-6 py-4 border-t border-slate-800">
                     <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-2xl border border-slate-700/50">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">
+                        <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center text-accent font-bold">
                             {user.name[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -221,11 +221,11 @@ export const Sidebar: React.FC = () => {
                     onClick={() => setIsOpen(false)}
                     className={cn(
                         "w-full flex items-center gap-4 px-4 py-2.5 text-sm font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-xl transition-all",
-                        location.pathname === '/settings' ? "bg-indigo-600/10 text-indigo-400" : "",
+                        location.pathname === '/settings' ? "bg-accent/10 text-accent" : "",
                         collapsed && "justify-center px-0"
                     )}
                 >
-                    <Icon name="settings" className={cn("w-5 h-5", location.pathname === '/settings' ? "text-indigo-400" : "")} />
+                    <Icon name="settings" className={cn("w-5 h-5", location.pathname === '/settings' ? "text-accent" : "")} />
                     {!collapsed && "Settings"}
                 </Link>
                 <button 
@@ -253,7 +253,7 @@ export const Sidebar: React.FC = () => {
                 {/* Collapse Toggle */}
                 <button 
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="fixed bottom-24 left-64 -translate-x-1/2 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 shadow-sm z-50 transition-all"
+                    className="fixed bottom-24 left-64 -translate-x-1/2 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-accent shadow-sm z-50 transition-all"
                     style={{ left: isCollapsed ? '80px' : '256px' }}
                 >
                     <Icon name={isCollapsed ? 'chevron-right' : 'chevron-left'} className="w-4 h-4" />
@@ -266,7 +266,7 @@ export const Sidebar: React.FC = () => {
                     onClick={() => setIsOpen(!isOpen)}
                     className="p-2.5 bg-white border border-slate-200 rounded-xl shadow-sm text-slate-600 active:scale-95 transition-transform"
                 >
-                    <Icon name={isOpen ? 'x' : 'menu'} className="w-6 h-6" />
+                    <Icon name={isOpen ? 'x' : 'menu-compact'} className="w-6 h-6" />
                 </button>
             </div>
 

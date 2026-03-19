@@ -49,7 +49,7 @@ interface CRMState {
     };
     theme: 'light' | 'dark' | 'red' | 'green';
     editingProduct: Product | null;
-    notification: { message: string, type: 'success' | 'error' } | null;
+    notifications: { id: string; message: string; type: 'success' | 'error' }[];
     
     // Auth
     isAuthenticated: boolean;
@@ -76,6 +76,8 @@ interface CRMState {
     setSearchQuery: (query: string) => void;
     setFilters: (filters: Partial<CRMState['filters']>) => void;
     setTheme: (theme: CRMState['theme']) => void;
+    addNotification: (message: string, type: 'success' | 'error') => void;
+    removeNotification: (id: string) => void;
     setNotification: (notif: { message: string, type: 'success' | 'error' } | null) => void;
     login: (email: string, password: string) => Promise<boolean>;
     logout: () => void;
@@ -102,7 +104,7 @@ export const useCRMStore = create<CRMState>((set, get) => ({
     },
     theme: (localStorage.getItem('crm-theme') as any) || 'light',
     editingProduct: null,
-    notification: null,
+    notifications: [],
     isAuthenticated: !!localStorage.getItem('crm-token'),
     token: localStorage.getItem('crm-token'),
     user: JSON.parse(localStorage.getItem('crm-user') || 'null'),
@@ -165,8 +167,8 @@ export const useCRMStore = create<CRMState>((set, get) => ({
             set({ 
                 settingsData: data, 
                 isLoading: false,
-                notification: { message: 'Settings updated successfully', type: 'success' }
             });
+            get().addNotification('Settings updated successfully', 'success');
         } catch (error) {
             set({ isLoading: false });
         }
@@ -193,7 +195,8 @@ export const useCRMStore = create<CRMState>((set, get) => ({
             set({ editingProduct: data, isLoading: false });
             return data;
         } catch (error) {
-            set({ isLoading: false, notification: { message: 'Product not found', type: 'error' } });
+            set({ isLoading: false });
+            get().addNotification('Product not found', 'error');
             return null;
         }
     },
@@ -209,8 +212,8 @@ export const useCRMStore = create<CRMState>((set, get) => ({
             set((state) => ({ 
                 products: [data, ...state.products],
                 isLoading: false,
-                notification: { message: 'Product added successfully', type: 'success' }
             }));
+            get().addNotification('Product added successfully', 'success');
             get().fetchProducts();
         } catch (error) {
             set({ isLoading: false });
@@ -226,8 +229,8 @@ export const useCRMStore = create<CRMState>((set, get) => ({
             set((state) => ({
                 products: state.products.map(p => p.id === id ? data : p),
                 isLoading: false,
-                notification: { message: 'Product updated successfully', type: 'success' }
             }));
+            get().addNotification('Product updated successfully', 'success');
             get().fetchProducts();
         } catch (error) {
             set({ isLoading: false });
@@ -240,8 +243,8 @@ export const useCRMStore = create<CRMState>((set, get) => ({
             set((state) => ({
                 products: state.products.filter(p => p.id !== id),
                 isLoading: false,
-                notification: { message: 'Product deleted successfully', type: 'success' }
             }));
+            get().addNotification('Product deleted successfully', 'success');
             get().fetchProducts();
         } catch (error) {
             set({ isLoading: false });
@@ -258,8 +261,8 @@ export const useCRMStore = create<CRMState>((set, get) => ({
                 products: state.products.filter(p => !ids.includes(p.id)),
                 isLoading: false,
                 selectedProductIds: [],
-                notification: { message: `${ids.length} products deleted successfully`, type: 'success' }
             }));
+            get().addNotification(`${ids.length} products deleted successfully`, 'success');
             get().fetchProducts();
         } catch (error) {
             set({ isLoading: false });
@@ -289,7 +292,22 @@ export const useCRMStore = create<CRMState>((set, get) => ({
         localStorage.setItem('crm-theme', theme);
         set({ theme });
     },
-    setNotification: (notification) => set({ notification }),
+    addNotification: (message, type) => {
+        const id = Math.random().toString(36).substring(2, 9);
+        set((state) => ({
+            notifications: [...state.notifications, { id, message, type }]
+        }));
+    },
+    removeNotification: (id) => {
+        set((state) => ({
+            notifications: state.notifications.filter(n => n.id !== id)
+        }));
+    },
+    setNotification: (notification) => {
+        if (notification) {
+            get().addNotification(notification.message, notification.type);
+        }
+    },
     
     login: async (email, password) => {
         set({ isLoading: true });
@@ -311,18 +329,14 @@ export const useCRMStore = create<CRMState>((set, get) => ({
                 });
                 return true;
             } else {
-                set({ 
-                    isLoading: false,
-                    notification: { message: data.message || 'Login failed', type: 'error' }
-                });
+                set({ isLoading: false });
+                get().addNotification(data.message || 'Login failed', 'error');
                 return false;
             }
         } catch (error) {
             console.error("Login error", error);
-            set({ 
-                isLoading: false,
-                notification: { message: 'An error occurred during login', type: 'error' }
-            });
+            set({ isLoading: false });
+            get().addNotification('An error occurred during login', 'error');
             return false;
         }
     },

@@ -12,7 +12,7 @@ export const ActionColumn: React.FC<ActionColumnProps> = ({ onEdit, onDelete }) 
         <div className="flex items-center gap-2">
             <button 
                 onClick={onEdit}
-                className="p-2 rounded-md hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-colors"
+                className="p-2 rounded-md hover:bg-accent/10 text-slate-400 hover:text-accent transition-colors"
                 title="Edit"
             >
                 <Icon name="edit" className="w-4 h-4" />

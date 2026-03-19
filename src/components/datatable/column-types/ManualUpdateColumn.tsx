@@ -16,7 +16,7 @@ export const ManualUpdateColumn: React.FC<ManualUpdateColumnProps> = ({ hasChang
             className={cn(
                 "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
                 hasChanges 
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-200" 
+                    ? "bg-accent text-white hover:opacity-90 shadow-sm shadow-accent/20" 
                     : "bg-slate-100 text-slate-400 cursor-not-allowed"
             )}
         >

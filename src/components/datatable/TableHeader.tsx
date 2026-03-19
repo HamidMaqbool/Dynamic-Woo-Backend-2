@@ -37,7 +37,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                 </button>
                 <button 
                     onClick={onAddProduct}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm shadow-indigo-200 transition-all active:scale-[0.98] text-sm font-semibold w-full sm:w-auto"
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:opacity-90 shadow-sm shadow-accent/20 transition-all active:scale-[0.98] text-sm font-semibold w-full sm:w-auto"
                 >
                     <Icon name="file-plus" className="w-4 h-4" />
                     <span>Add {addProductLabel}</span>

@@ -46,8 +46,8 @@ export const Dashboard: React.FC = () => {
                         className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
                     >
                         <div className="flex items-center justify-between mb-4">
-                            <div className="p-2 bg-indigo-50 rounded-lg">
-                                <Icon name={stat.icon} className="w-5 h-5 text-indigo-600" />
+                            <div className="p-2 bg-accent/10 rounded-lg">
+                                <Icon name={stat.icon} className="w-5 h-5 text-accent" />
                             </div>
                             <span className={`text-xs font-bold px-2 py-1 rounded-full ${stat.trend === 'up' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                                 {stat.change}
@@ -73,7 +73,7 @@ export const Dashboard: React.FC = () => {
                         {dashboardData.charts.sales.map((val: number, i: number) => (
                             <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
                                 <div 
-                                    className="w-full bg-indigo-500 rounded-t-lg transition-all group-hover:bg-indigo-600 relative"
+                                    className="w-full bg-accent/80 rounded-t-lg transition-all group-hover:bg-accent relative"
                                     style={{ height: `${(val / 4000) * 100}%` }}
                                 >
                                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
@@ -103,7 +103,7 @@ export const Dashboard: React.FC = () => {
                             </div>
                         ))}
                     </div>
-                    <button className="w-full mt-8 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">
+                    <button className="w-full mt-8 py-2 text-xs font-bold text-accent bg-accent/10 rounded-xl hover:bg-accent/20 transition-colors">
                         View All Activity
                     </button>
                 </div>

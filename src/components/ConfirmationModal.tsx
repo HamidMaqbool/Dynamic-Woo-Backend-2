@@ -44,7 +44,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${
                                 type === 'danger' ? 'bg-rose-50 text-rose-600' : 
                                 type === 'warning' ? 'bg-amber-50 text-amber-600' : 
-                                'bg-indigo-50 text-indigo-600'
+                                'bg-accent/10 text-accent'
                             }`}>
                                 <Icon name={type === 'danger' ? 'trash-2' : 'alert-triangle'} className="w-6 h-6" />
                             </div>
@@ -66,7 +66,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                                 className={`flex-1 px-6 py-3 text-sm font-bold text-white rounded-2xl shadow-lg transition-all ${
                                     type === 'danger' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200' : 
                                     type === 'warning' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200' : 
-                                    'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'
+                                    'bg-accent hover:opacity-90 shadow-accent/20'
                                 }`}
                             >
                                 {confirmText}

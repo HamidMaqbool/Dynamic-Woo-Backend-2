@@ -24,7 +24,7 @@ import { VariationField } from './input-type/VariationField';
 export const DynamicForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { editingProduct, addProduct, updateProduct, setNotification, notification, schema, routes, fetchProductById } = useCRMStore();
+    const { editingProduct, addProduct, updateProduct, addNotification, schema, routes, fetchProductById } = useCRMStore();
     
     const listRoute = routes?.find(r => r.view === 'list');
     const basePath = listRoute?.path || '/products';
@@ -141,7 +141,7 @@ export const DynamicForm: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validate()) {
-            setNotification({ message: 'Please fix the errors before submitting', type: 'error' });
+            addNotification('Please fix the errors before submitting', 'error');
             return;
         }
 
@@ -292,27 +292,6 @@ export const DynamicForm: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full bg-[#F8F9FA] text-[#1A1A1A] font-sans relative">
-            {/* Notification Toast */}
-            <AnimatePresence>
-                {notification && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: -50 }}
-                        animate={{ opacity: 1, y: 20 }}
-                        exit={{ opacity: 0, y: -50 }}
-                        className={cn(
-                            "fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 border",
-                            notification.type === 'success' ? "bg-emerald-500 text-white border-emerald-400" : "bg-rose-500 text-white border-rose-400"
-                        )}
-                    >
-                        {notification.type === 'success' ? <Icon name="check-circle" className="w-5 h-5" /> : <Icon name="alert-circle" className="w-5 h-5" />}
-                        <span className="font-semibold text-sm">{notification.message}</span>
-                        <button onClick={() => setNotification(null)} className="ml-2 hover:opacity-70">
-                            <Icon name="x" className="w-4 h-4" />
-                        </button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
             {/* Header */}
             <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-4 sm:px-8 sm:py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -341,7 +320,7 @@ export const DynamicForm: React.FC = () => {
                     <button 
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm shadow-indigo-200 transition-all active:scale-[0.98] text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-accent text-white rounded-lg hover:opacity-90 shadow-sm shadow-accent/20 transition-all active:scale-[0.98] text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? (
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -365,7 +344,7 @@ export const DynamicForm: React.FC = () => {
                             className="absolute inset-0 z-30 bg-white/40 backdrop-blur-[2px] flex items-center justify-center"
                         >
                             <div className="flex flex-col items-center gap-3 bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
-                                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                                <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
                                 <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">
                                     {isSubmitting ? 'Saving Changes...' : 'Loading Data...'}
                                 </span>
@@ -387,7 +366,7 @@ export const DynamicForm: React.FC = () => {
                             {mainSections.map((section, sIdx) => (
                                 <div key={sIdx} className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
                                     <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                                        <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+                                        <span className="w-1.5 h-6 bg-accent rounded-full"></span>
                                         {section.title}
                                     </h2>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">

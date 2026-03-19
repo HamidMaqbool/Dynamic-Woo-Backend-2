@@ -21,7 +21,7 @@ export const ImageField: React.FC<ImageFieldProps> = ({
   return (
     <div className="space-y-3">
       <label className={cn(
-        "block aspect-video rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden group hover:border-indigo-300 transition-colors cursor-pointer relative",
+        "block aspect-video rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden group hover:border-accent transition-colors cursor-pointer relative",
         readOnly && "cursor-not-allowed opacity-70 hover:border-slate-200"
       )}>
         <input 
@@ -32,7 +32,7 @@ export const ImageField: React.FC<ImageFieldProps> = ({
         />
         {isUploading ? (
           <div className="flex flex-col items-center gap-2">
-            <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
             <span className="text-[10px] font-bold text-slate-400 uppercase">Uploading...</span>
           </div>
         ) : value ? (

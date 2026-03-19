@@ -181,7 +181,7 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
                     id="has-options"
                     checked={hasOptions}
                     onChange={(e) => setHasOptions(e.target.checked)}
-                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                    className="w-4 h-4 text-accent rounded focus:ring-accent"
                     disabled={readOnly}
                 />
                 <label htmlFor="has-options" className="text-sm font-semibold text-slate-700 cursor-pointer">
@@ -213,7 +213,7 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
                                                 value={opt.name}
                                                 onChange={(e) => updateOptionName(idx, e.target.value)}
                                                 placeholder="e.g. Size"
-                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none"
                                                 disabled={readOnly}
                                             />
                                         </div>
@@ -221,10 +221,10 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
                                             <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Option Values</label>
                                             <div className="flex flex-wrap gap-2 mb-2">
                                                 {opt.values.map((val, vIdx) => (
-                                                    <span key={vIdx} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-md border border-indigo-100">
+                                                    <span key={vIdx} className="inline-flex items-center gap-1 px-2 py-1 bg-accent/10 text-accent text-xs font-bold rounded-md border border-accent/20">
                                                         {val}
                                                         {!readOnly && (
-                                                            <button onClick={() => removeOptionValue(idx, vIdx)} className="hover:text-indigo-900">
+                                                            <button onClick={() => removeOptionValue(idx, vIdx)} className="hover:text-accent">
                                                                 <Icon name="x" className="w-3 h-3" />
                                                             </button>
                                                         )}
@@ -235,7 +235,7 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
                                                 <input 
                                                     type="text"
                                                     placeholder="Add value and press Enter"
-                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none"
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') {
                                                             e.preventDefault();
@@ -253,7 +253,7 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
                         {!readOnly && options.length < 3 && (
                             <button 
                                 onClick={addOption}
-                                className="flex items-center gap-2 text-indigo-600 text-sm font-bold hover:text-indigo-700 transition-colors"
+                                className="flex items-center gap-2 text-accent text-sm font-bold hover:opacity-80 transition-colors"
                             >
                                 <Icon name="plus" className="w-4 h-4" />
                                 Add another option
@@ -272,7 +272,7 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
                                     <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-2">
                                         <span className="text-xs font-bold text-slate-500">{selectedVariants.length} selected</span>
                                         <select 
-                                            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                                            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-accent/20 outline-none"
                                             onChange={(e) => setBulkEditValue({ field: e.target.value, value: '' })}
                                         >
                                             <option value="">Bulk Edit...</option>
@@ -285,12 +285,12 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
                                                 <input 
                                                     type={tableColumns.find(c => c.name === bulkEditValue.field)?.type === 'number' ? 'number' : 'text'}
                                                     placeholder={`New ${bulkEditValue.field}`}
-                                                    className="w-24 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                                    className="w-24 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-accent/20"
                                                     onChange={(e) => setBulkEditValue({ ...bulkEditValue, value: e.target.value })}
                                                 />
                                                 <button 
                                                     onClick={handleBulkEdit}
-                                                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors"
+                                                    className="px-3 py-1.5 bg-accent text-white text-xs font-bold rounded-lg hover:opacity-90 transition-colors"
                                                 >
                                                     Apply
                                                 </button>
@@ -309,7 +309,7 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
                                                     type="checkbox" 
                                                     checked={selectedVariants.length === variants.length}
                                                     onChange={toggleSelectAll}
-                                                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                                    className="w-4 h-4 text-accent rounded focus:ring-accent"
                                                 />
                                             </th>
                                             {tableColumns.map(col => (
@@ -321,13 +321,13 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {variants.map((v, idx) => (
-                                            <tr key={idx} className={cn("hover:bg-slate-50/50 transition-colors", v.isDefault && "bg-indigo-50/30", selectedVariants.includes(v.id) && "bg-indigo-50/50")}>
+                                            <tr key={idx} className={cn("hover:bg-slate-50/50 transition-colors", v.isDefault && "bg-accent/5", selectedVariants.includes(v.id) && "bg-accent/10")}>
                                                 <td className="px-4 py-3">
                                                     <input 
                                                         type="checkbox" 
                                                         checked={selectedVariants.includes(v.id)}
                                                         onChange={() => toggleSelect(v.id)}
-                                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                                        className="w-4 h-4 text-accent rounded focus:ring-accent"
                                                     />
                                                 </td>
                                                 {tableColumns.map(col => (
@@ -360,7 +360,7 @@ function renderVariantCell(col: any, variant: Variant, index: number, updateVari
                         name="default-variant"
                         checked={!!value}
                         onChange={() => updateVariant(index, col.name, true)}
-                        className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                        className="w-4 h-4 text-accent focus:ring-accent/50"
                         disabled={readOnly}
                     />
                 </div>
@@ -370,7 +370,7 @@ function renderVariantCell(col: any, variant: Variant, index: number, updateVari
                 <div 
                     onClick={() => !readOnly && handleImageUpload(index)}
                     className={cn(
-                        "w-10 h-10 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden cursor-pointer hover:border-indigo-400 transition-colors",
+                        "w-10 h-10 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden cursor-pointer hover:border-accent transition-colors",
                         value && "border-none"
                     )}
                 >
@@ -390,7 +390,7 @@ function renderVariantCell(col: any, variant: Variant, index: number, updateVari
                         value={value as any}
                         onChange={(e) => updateVariant(index, col.name, col.name === 'inventory' ? parseInt(e.target.value) || 0 : e.target.value)}
                         className={cn(
-                            "w-24 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none",
+                            "w-24 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none",
                             col.prefix ? "pl-6" : "pl-3"
                         )}
                         disabled={readOnly || col.readOnly}
@@ -407,7 +407,7 @@ function renderVariantCell(col: any, variant: Variant, index: number, updateVari
                     type="text"
                     value={value as string}
                     onChange={(e) => updateVariant(index, col.name, e.target.value)}
-                    className="w-32 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    className="w-32 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none"
                     placeholder={col.label}
                     disabled={readOnly || col.readOnly}
                 />

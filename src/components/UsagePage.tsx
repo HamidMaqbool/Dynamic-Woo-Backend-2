@@ -117,7 +117,7 @@ export const UsagePage: React.FC = () => {
                     {/* Field Type Documentation Section */}
                     <section className="space-y-6">
                         <div className="flex items-center gap-2">
-                            <HelpCircle className="w-5 h-5 text-indigo-600" />
+                            <HelpCircle className="w-5 h-5 text-accent" />
                             <h2 className="text-xl font-bold text-slate-900">Available Field Types</h2>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -130,7 +130,7 @@ export const UsagePage: React.FC = () => {
                                     className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
                                 >
                                     <div className="flex items-center justify-between mb-3">
-                                        <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
+                                        <span className="px-2 py-1 bg-accent/10 text-accent rounded text-[10px] font-bold uppercase tracking-wider border border-accent/20">
                                             {type}
                                         </span>
                                     </div>
@@ -188,7 +188,7 @@ export const UsagePage: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Fields</p>
-                            <p className="text-3xl font-bold text-indigo-600">{fieldUsages.length}</p>
+                            <p className="text-3xl font-bold text-accent">{fieldUsages.length}</p>
                         </div>
                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sections</p>
@@ -220,7 +220,7 @@ export const UsagePage: React.FC = () => {
                                             <div className="text-[10px] text-slate-400 font-mono mt-0.5">{field.name}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 uppercase tracking-wide border border-indigo-100">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-accent/10 text-accent uppercase tracking-wide border border-accent/20">
                                                 {field.type}
                                             </span>
                                         </td>
@@ -255,7 +255,7 @@ export const UsagePage: React.FC = () => {
                             <h2 className="text-white font-bold text-lg">Raw Schema Definition</h2>
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">JSON Format</span>
                         </div>
-                        <pre className="text-indigo-300 font-mono text-xs overflow-auto max-h-[400px] custom-scrollbar">
+                        <pre className="text-accent/80 font-mono text-xs overflow-auto max-h-[400px] custom-scrollbar">
                             {JSON.stringify(schema.form["auroparts-product"], null, 2)}
                         </pre>
                     </div>
