@@ -22,8 +22,7 @@
                     { "name": "ID", "sortable": true, "col": "id", "searchable": true, "width": "80px" },
                     { "name": "Image", "sortable": false, "col": "image", "type": "image", "width": "80px" },
                     { "name": "Type", "sortable": true, "col": "product_type", "type": "badge", "width": "100px" },
-                    { "name": "AuropartsID", "sortable": true, "searchable": true, "col": "identifier", "width": "150px" },
-                    { "name": "Parent", "sortable": true, "searchable": true, "col": "parent_id", "width": "120px" },
+                    { "name": "AuropartsID", "sortable": true, "searchable": true, "col": "identifier", "columnType": "text","width": "150px" },
                     { "name": "Title", "sortable": true, "searchable": true, "col": "title", "columnType": "text", "autoUpdate": true, "width": "300px" },
                     { "name": "Status", "sortable": true, "col": "status", "width": "150px", "columnType": "select" },
                     { "name": "Created Date", "sortable": true, "col": "created_at", "width": "150px" },
@@ -72,6 +71,7 @@
                 "name": "content-en",
                 "fields": [
                     { "title": "Product Name", "name": "item_name", "value": "test", "type": "text", "placeholder": "", "tooltip": "", "valid": "required", "field-type":"main", "dbcol":"title" },
+                    { "title": "Product Name2", "name": "item_name", "value": "test", "type": "text", "placeholder": "", "tooltip": "", "valid": "required", "field-type":"main", "dbcol":"title" },
                     { "title": "Company Name", "name": "company_name", "class": "half", "value": "", "type": "text", "readOnly": true, "placeholder": "", "tooltip": "", "valid": "required" },
                     { "title": "Year", "name": "year", "value": "", "type": "text", "readOnly": true, "class": "half", "placeholder": "", "tooltip": "", "valid": "required" },
                     { "title": "Odo Reading", "name": "odo_reading", "value": "", "type": "text", "attr": { "readOnly": "true" }, "class": "half", "placeholder": "", "tooltip": "", "valid": "required" },
