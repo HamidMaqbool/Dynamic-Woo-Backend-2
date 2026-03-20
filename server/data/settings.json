@@ -98,6 +98,20 @@
           ]
         }
       ]
+    },
+    {
+      "id": "media",
+      "label": "Media",
+      "icon": "image",
+      "sections": [
+        {
+          "title": "Library Settings",
+          "fields": [
+            { "name": "mediaInfiniteScroll", "label": "Enable Infinite Scroll (Modal)", "type": "checkbox", "value": true },
+            { "name": "mediaItemsPerPage", "label": "Items Per Page", "type": "number", "value": 12 }
+          ]
+        }
+      ]
     }
   ]
 }

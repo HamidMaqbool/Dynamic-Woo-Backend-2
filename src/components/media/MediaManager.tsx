@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Upload, Image as ImageIcon, Search, X, Check, Trash2, Info, FileText, Loader2, Grid, List, Calendar, ChevronLeft, ChevronRight, Edit2, Save } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Upload, Image as ImageIcon, Search, X, Check, Trash2, Info, FileText, Loader2, Grid, List, Calendar, ChevronLeft, ChevronRight, Edit2, Save, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../utils/cn';
 import { mediaService, MediaItem } from '../../services/mediaService';
+import { useCRMStore } from '../../store/useStore';
 
 interface MediaManagerProps {
   onSelect?: (items: MediaItem[]) => void;
@@ -32,11 +33,20 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
   const [selectedItems, setSelectedItems] = useState<MediaItem[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState<{ name: string; progress: number }[]>([]);
   const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   
+  // Settings
+  const settings = useCRMStore(state => state.settingsData);
+  const mediaSettings = settings?.tabs?.find((t: any) => t.id === 'media')?.sections?.[0]?.fields;
+  const infiniteScrollEnabled = mediaSettings?.find((f: any) => f.name === 'mediaInfiniteScroll')?.value ?? true;
+  const itemsPerPageSetting = Number(mediaSettings?.find((f: any) => f.name === 'mediaItemsPerPage')?.value ?? 12);
+
   // Pagination & Load More
-  const [itemsToShow, setItemsToShow] = useState(12);
+  const [itemsToShow, setItemsToShow] = useState(itemsPerPageSetting);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = itemsPerPageSetting;
+
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   // Editing
   const [isEditing, setIsEditing] = useState(false);
@@ -104,6 +114,9 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
       setSelectedItems([item]);
     }
     setPreviewItem(item);
+    if (!isModal) {
+      setShowDetailModal(true);
+    }
     setIsEditing(false);
     setEditName(item.name);
   };
@@ -139,8 +152,8 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
 
   useEffect(() => {
     setCurrentPage(1);
-    setItemsToShow(12);
-  }, [searchQuery, dateFilter]);
+    setItemsToShow(itemsPerPageSetting);
+  }, [searchQuery, dateFilter, itemsPerPageSetting]);
 
   const filteredMedia = useMemo(() => {
     return media.filter(m => {
@@ -168,15 +181,56 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
   }, [media, searchQuery, dateFilter]);
 
   const paginatedMedia = useMemo(() => {
-    if (viewMode === 'grid') {
+    if (isModal && viewMode === 'grid') {
       return filteredMedia.slice(0, itemsToShow);
     } else {
       const start = (currentPage - 1) * itemsPerPage;
       return filteredMedia.slice(start, start + itemsPerPage);
     }
-  }, [filteredMedia, viewMode, itemsToShow, currentPage]);
+  }, [filteredMedia, viewMode, itemsToShow, currentPage, isModal, itemsPerPage]);
+
+  // Infinite Scroll for Modal
+  useEffect(() => {
+    if (!isModal || !infiniteScrollEnabled || activeTab !== 'library') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && itemsToShow < filteredMedia.length) {
+          setItemsToShow(prev => prev + itemsPerPageSetting);
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [isModal, infiniteScrollEnabled, activeTab, itemsToShow, filteredMedia.length, itemsPerPageSetting]);
 
   const totalPages = Math.ceil(filteredMedia.length / itemsPerPage);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) pages.push(i);
+      
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   const formatSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -185,6 +239,92 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
+
+  const renderPreviewContent = (item: MediaItem) => (
+    <div className="p-6 space-y-6">
+      <div className="aspect-video bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
+        <img src={item.url} alt={item.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+      </div>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">File Name</label>
+          {isEditing ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                autoFocus
+              />
+              <button
+                onClick={handleUpdate}
+                disabled={isUpdating}
+                className="p-1.5 bg-accent text-white rounded-lg hover:bg-accent/90 disabled:opacity-50"
+              >
+                {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="p-1.5 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between group/name">
+              <p className="text-sm font-bold text-slate-700 truncate">{item.name}</p>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-1 text-slate-400 hover:text-accent opacity-0 group-hover/name:opacity-100 transition-all"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Type</label>
+            <p className="text-xs font-medium text-slate-600 capitalize">{item.type}</p>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Size</label>
+            <p className="text-xs font-medium text-slate-600">{formatSize(item.size)}</p>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Created</label>
+            <p className="text-xs font-medium text-slate-600">{new Date(item.created_at).toLocaleDateString()}</p>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dimensions</label>
+            <p className="text-xs font-medium text-slate-600">{item.dimensions || 'N/A'}</p>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-slate-100 flex gap-3">
+          <button
+            onClick={(e) => handleDelete(item.id, e)}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete File
+          </button>
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            View Full
+          </a>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className={cn(
@@ -235,7 +375,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
 
       <div className="flex-1 flex overflow-hidden">
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden border-r border-slate-100">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {activeTab === 'upload' ? (
             <div className="flex-1 flex flex-col items-center justify-center p-12">
               <label className="w-full max-w-md aspect-video border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-accent hover:bg-accent/5 transition-all group">
@@ -377,13 +517,58 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
                       })}
                     </div>
                     
-                    {itemsToShow < filteredMedia.length && (
+                    {isModal && !infiniteScrollEnabled && itemsToShow < filteredMedia.length && (
                       <div className="flex justify-center pt-4">
                         <button
-                          onClick={() => setItemsToShow(prev => prev + 12)}
+                          onClick={() => setItemsToShow(prev => prev + itemsPerPageSetting)}
                           className="px-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
                         >
                           Load More
+                        </button>
+                      </div>
+                    )}
+
+                    {isModal && infiniteScrollEnabled && (
+                      <div ref={observerTarget} className="h-10 flex items-center justify-center">
+                        {itemsToShow < filteredMedia.length && (
+                          <Loader2 className="w-6 h-6 text-accent animate-spin" />
+                        )}
+                      </div>
+                    )}
+
+                    {!isModal && totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 pt-8">
+                        <button
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage(prev => prev - 1)}
+                          className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-accent disabled:opacity-50 transition-all"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        
+                        {getPageNumbers().map((page, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                            className={cn(
+                              "min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all",
+                              currentPage === page 
+                                ? "bg-accent text-white shadow-lg shadow-accent/20" 
+                                : page === '...' 
+                                  ? "text-slate-400 cursor-default"
+                                  : "bg-white border border-slate-200 text-slate-600 hover:border-accent hover:text-accent"
+                            )}
+                          >
+                            {page}
+                          </button>
+                        ))}
+
+                        <button
+                          disabled={currentPage === totalPages}
+                          onClick={() => setCurrentPage(prev => prev + 1)}
+                          className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-accent disabled:opacity-50 transition-all"
+                        >
+                          <ChevronRight className="w-5 h-5" />
                         </button>
                       </div>
                     )}
@@ -444,21 +629,36 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
 
                     {/* Pagination Controls */}
                     {totalPages > 1 && (
-                      <div className="flex items-center justify-center gap-4 pt-4">
+                      <div className="flex items-center justify-center gap-2 pt-8">
                         <button
                           disabled={currentPage === 1}
                           onClick={() => setCurrentPage(prev => prev - 1)}
-                          className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-accent disabled:opacity-50 transition-all"
+                          className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-accent disabled:opacity-50 transition-all"
                         >
                           <ChevronLeft className="w-5 h-5" />
                         </button>
-                        <span className="text-xs font-bold text-slate-500">
-                          Page {currentPage} of {totalPages}
-                        </span>
+                        
+                        {getPageNumbers().map((page, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                            className={cn(
+                              "min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all",
+                              currentPage === page 
+                                ? "bg-accent text-white shadow-lg shadow-accent/20" 
+                                : page === '...' 
+                                  ? "text-slate-400 cursor-default"
+                                  : "bg-white border border-slate-200 text-slate-600 hover:border-accent hover:text-accent"
+                            )}
+                          >
+                            {page}
+                          </button>
+                        ))}
+
                         <button
                           disabled={currentPage === totalPages}
                           onClick={() => setCurrentPage(prev => prev + 1)}
-                          className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-accent disabled:opacity-50 transition-all"
+                          className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-accent disabled:opacity-50 transition-all"
                         >
                           <ChevronRight className="w-5 h-5" />
                         </button>
@@ -471,110 +671,51 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
           )}
         </div>
 
-        {/* Sidebar / Preview */}
-        <div className="w-80 bg-slate-50/50 overflow-y-auto custom-scrollbar flex flex-col">
-          {previewItem ? (
-            <div className="p-6 space-y-6">
-              <div className="aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-                <img
-                  src={previewItem.url}
-                  alt={previewItem.name}
-                  className="w-full h-full object-contain"
-                  referrerPolicy="no-referrer"
-                />
+        {/* Sidebar / Preview (Only for Modal) */}
+        {isModal && (
+          <div className="w-80 bg-slate-50/50 overflow-y-auto custom-scrollbar flex flex-col border-l border-slate-100">
+            {previewItem ? renderPreviewContent(previewItem) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+                  <Info className="w-6 h-6 text-slate-300" />
+                </div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Select an item to view details</p>
               </div>
+            )}
+          </div>
+        )}
+      </div>
 
-              <div className="space-y-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    {isEditing ? (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="flex-1 px-2 py-1 text-sm font-bold bg-white border border-accent rounded-lg outline-none"
-                          autoFocus
-                        />
-                        <button
-                          onClick={handleUpdate}
-                          disabled={isUpdating}
-                          className="p-1 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
-                        >
-                          {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        </button>
-                        <button
-                          onClick={() => { setIsEditing(false); setEditName(previewItem.name); }}
-                          className="p-1 bg-slate-200 text-slate-500 rounded-lg hover:bg-slate-300 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 group">
-                        <h3 className="text-sm font-bold text-slate-800 break-words">{previewItem.name}</h3>
-                        <button
-                          onClick={() => setIsEditing(true)}
-                          className="p-1 text-slate-400 hover:text-accent opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                      {new Date(previewItem.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Size</p>
-                    <p className="text-xs font-bold text-slate-700">{formatSize(previewItem.size)}</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Dimensions</p>
-                    <p className="text-xs font-bold text-slate-700">{previewItem.dimensions}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">File URL</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={previewItem.url}
-                      className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-[10px] focus:outline-none"
-                    />
-                    <button 
-                      onClick={() => navigator.clipboard.writeText(previewItem.url)}
-                      className="px-3 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-[10px] font-bold transition-colors"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={(e) => handleDelete(previewItem.id, e)}
-                  className="w-full flex items-center justify-center gap-2 py-3 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition-all border border-transparent hover:border-rose-100"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete Permanently
+      {/* Detail Modal (Only for Page View) */}
+      <AnimatePresence>
+        {!isModal && showDetailModal && previewItem && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDetailModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <h3 className="text-lg font-bold text-slate-800">Media Details</h3>
+                <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-slate-400" />
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-              <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-                <Info className="w-6 h-6 text-slate-300" />
+              <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
+                {renderPreviewContent(previewItem)}
               </div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Select an item to view details</p>
-            </div>
-          )}
-        </div>
-      </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Footer (only for modal) */}
       {isModal && (
