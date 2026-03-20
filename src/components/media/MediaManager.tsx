@@ -331,7 +331,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
       "flex flex-col bg-white overflow-hidden transition-all duration-300",
       isModal 
         ? "h-[85vh] w-full max-w-6xl rounded-2xl shadow-2xl" 
-        : "h-[calc(100vh-180px)] min-h-[600px] rounded-3xl border border-slate-200/60 shadow-sm"
+        : "h-full w-full rounded-none border-none shadow-none"
     )}>
       {/* Header */}
       <div className={cn(
@@ -462,7 +462,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
               </div>
 
               {/* Grid/List Content */}
-              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-6 pb-24 custom-scrollbar">
                 {isLoading ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {[...Array(12)].map((_, i) => (

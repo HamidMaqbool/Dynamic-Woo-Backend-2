@@ -3,6 +3,7 @@ import { useCRMStore } from '../store/useStore';
 import { Skeleton } from './Skeleton';
 import { Icon } from './Icon';
 import { cn } from '../utils/cn';
+import { motion, AnimatePresence } from 'motion/react';
 
 // Reuse input components for consistency
 import { TextField } from './input-type/TextField';
@@ -10,11 +11,15 @@ import { TextAreaField } from './input-type/TextAreaField';
 import { SelectField } from './input-type/SelectField';
 import { CheckboxField } from './input-type/CheckboxField';
 import { ColorField } from './input-type/ColorField';
+import { MediaManager } from './media/MediaManager';
+import { MediaItem } from '../services/mediaService';
 
 export const Settings: React.FC = () => {
     const { settingsData, fetchSettings, updateSettings, theme, setTheme } = useCRMStore();
     const [activeTab, setActiveTab] = useState<string>('');
     const [localSettings, setLocalSettings] = useState<any>({});
+    const [mediaSelectorOpen, setMediaSelectorOpen] = useState(false);
+    const [activeMediaField, setActiveMediaField] = useState<string | null>(null);
 
     useEffect(() => {
         if (!settingsData) {
@@ -92,6 +97,40 @@ export const Settings: React.FC = () => {
                 return <CheckboxField value={!!value} onChange={onChange} title={field.label} />;
             case 'color':
                 return <ColorField value={value ?? ''} onChange={onChange} />;
+            case 'media':
+                return (
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                            {value ? (
+                                <img src={value} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                            ) : (
+                                <Icon name="image" className="w-6 h-6 text-slate-300" />
+                            )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        setActiveMediaField(field.name);
+                                        setMediaSelectorOpen(true);
+                                    }}
+                                    className="px-4 py-2 text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-all"
+                                >
+                                    {value ? 'Change Image' : 'Select Image'}
+                                </button>
+                                {value && (
+                                    <button
+                                        onClick={() => onChange('')}
+                                        className="px-4 py-2 text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-all"
+                                    >
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 truncate max-w-[200px]">{value || 'No image selected'}</p>
+                        </div>
+                    </div>
+                );
             default:
                 return <div className="text-xs text-rose-500 italic">Unsupported field type: {field.type}</div>;
         }
@@ -167,6 +206,43 @@ export const Settings: React.FC = () => {
                     ))}
                 </div>
             </main>
+
+            {/* Media Selector Modal */}
+            <AnimatePresence>
+                {mediaSelectorOpen && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-8">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setMediaSelectorOpen(false)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-6xl"
+                        >
+                            <MediaManager
+                                isModal
+                                multiSelect={false}
+                                onSelect={(items) => {
+                                    if (activeMediaField && items.length > 0) {
+                                        handleFieldChange(activeMediaField, items[0].url);
+                                    }
+                                    setMediaSelectorOpen(false);
+                                    setActiveMediaField(null);
+                                }}
+                                onClose={() => {
+                                    setMediaSelectorOpen(false);
+                                    setActiveMediaField(null);
+                                }}
+                            />
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

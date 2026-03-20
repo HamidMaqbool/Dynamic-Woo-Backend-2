@@ -348,5 +348,25 @@
         "size": 242400,
         "dimensions": "800x600",
         "created_at": "2024-04-02T06:00:00Z"
+    },
+    {
+        "id": "media-logo-big",
+        "url": "https://picsum.photos/seed/logo-big/400/100",
+        "thumbnail": "https://picsum.photos/seed/logo-big/200/50",
+        "name": "Sidebar Logo Expanded.png",
+        "type": "image/png",
+        "size": 45000,
+        "dimensions": "400x100",
+        "created_at": "2024-04-03T10:00:00Z"
+    },
+    {
+        "id": "media-logo-small",
+        "url": "https://picsum.photos/seed/logo-small/100/100",
+        "thumbnail": "https://picsum.photos/seed/logo-small/100/100",
+        "name": "Sidebar Logo Collapsed.png",
+        "type": "image/png",
+        "size": 15000,
+        "dimensions": "100x100",
+        "created_at": "2024-04-03T10:05:00Z"
     }
 ]

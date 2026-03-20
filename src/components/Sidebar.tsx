@@ -129,6 +129,7 @@ export const Sidebar: React.FC = () => {
     const { sidebarData, isSidebarLoading, fetchSidebar, settingsData, fetchSettings, logout, user } = useCRMStore();
     const [isOpen, setIsOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [logos, setLogos] = useState({ big: '', collapsed: '' });
     const location = useLocation();
 
     useEffect(() => {
@@ -152,6 +153,16 @@ export const Sidebar: React.FC = () => {
                     }
                 }
             }
+
+            const mediaTab = settingsData.tabs.find((t: any) => t.id === 'media');
+            if (mediaTab) {
+                const brandingSection = mediaTab.sections.find((s: any) => s.title === 'Branding Logos');
+                if (brandingSection) {
+                    const bigLogo = brandingSection.fields.find((f: any) => f.name === 'sidebarLogoBig')?.value;
+                    const smallLogo = brandingSection.fields.find((f: any) => f.name === 'sidebarLogoCollapsed')?.value;
+                    setLogos({ big: bigLogo || '', collapsed: smallLogo || '' });
+                }
+            }
         }
     }, [settingsData]);
 
@@ -160,11 +171,27 @@ export const Sidebar: React.FC = () => {
             {/* Logo */}
             <div className={cn("p-8 border-b border-slate-800", collapsed && "p-4 flex justify-center")}>
                 <Link to="/dashboard" className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center shadow-lg shadow-accent/20 shrink-0">
-                        <Icon name="package" className="w-5 h-5 text-white" />
-                    </div>
-                    {!collapsed && (
-                        <span className="text-xl font-bold tracking-tight text-white">AURO<span className="text-accent">CRM</span></span>
+                    {collapsed ? (
+                        logos.collapsed ? (
+                            <img src={logos.collapsed} alt="Logo" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
+                        ) : (
+                            <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center shadow-lg shadow-accent/20 shrink-0">
+                                <Icon name="package" className="w-5 h-5 text-white" />
+                            </div>
+                        )
+                    ) : (
+                        <>
+                            {logos.big ? (
+                                <img src={logos.big} alt="Logo" className="h-9 object-contain" referrerPolicy="no-referrer" />
+                            ) : (
+                                <>
+                                    <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center shadow-lg shadow-accent/20 shrink-0">
+                                        <Icon name="package" className="w-5 h-5 text-white" />
+                                    </div>
+                                    <span className="text-xl font-bold tracking-tight text-white">AURO<span className="text-accent">CRM</span></span>
+                                </>
+                            )}
+                        </>
                     )}
                 </Link>
             </div>
