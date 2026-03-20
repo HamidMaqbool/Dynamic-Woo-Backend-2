@@ -43,6 +43,11 @@
     ]
   },
   {
+    "title": "Media",
+    "icon": "image",
+    "path": "media"
+  },
+  {
     "title": "Settings",
     "icon": "settings",
     "path": "settings"

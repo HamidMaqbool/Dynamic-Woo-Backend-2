@@ -22,5 +22,11 @@
     "view": "settings",
     "title": "Settings",
     "icon": "settings"
+  },
+  {
+    "path": "/media",
+    "view": "media",
+    "title": "Media",
+    "icon": "image"
   }
 ]

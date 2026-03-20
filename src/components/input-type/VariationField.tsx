@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../Icon';
 import { cn } from '../../utils/cn';
+import { MediaModal } from '../media/MediaModal';
 
 interface Option {
     name: string;
@@ -34,6 +35,8 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
     const [hasOptions, setHasOptions] = useState(initialOptions.length > 0);
     const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
     const [bulkEditValue, setBulkEditValue] = useState<{ field: string; value: any } | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [activeVariantIndex, setActiveVariantIndex] = useState<number | null>(null);
 
     // Default columns if none provided in schema
     const tableColumns = columns || [
@@ -152,9 +155,14 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
     };
 
     const handleImageUpload = (index: number) => {
-        // Mock image upload
-        const mockUrl = `https://picsum.photos/seed/${Math.random()}/100/100`;
-        updateVariant(index, 'image', mockUrl);
+        setActiveVariantIndex(index);
+        setIsModalOpen(true);
+    };
+
+    const handleSelectMedia = (items: any[]) => {
+        if (items.length > 0 && activeVariantIndex !== null) {
+            updateVariant(activeVariantIndex, 'image', items[0].url);
+        }
     };
 
     const toggleSelectAll = () => {
@@ -344,6 +352,12 @@ export const VariationField: React.FC<VariationFieldProps> = ({ value, onChange,
                     )}
                 </div>
             )}
+            <MediaModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSelect={handleSelectMedia}
+                multiSelect={false}
+            />
         </div>
     );
 };

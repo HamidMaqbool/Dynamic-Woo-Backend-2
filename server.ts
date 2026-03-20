@@ -48,6 +48,59 @@ async function startServer() {
     res.json(data);
   });
 
+  app.get("/api/media", (req, res) => {
+    const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), "server/data/media.json"), "utf-8"));
+    res.json(data);
+  });
+
+  app.post("/api/media", (req, res) => {
+    const newMedia = req.body;
+    const mediaPath = path.join(process.cwd(), "server/data/media.json");
+    const allMedia = JSON.parse(fs.readFileSync(mediaPath, "utf-8"));
+    
+    const mediaWithId = {
+      ...newMedia,
+      id: `MED-${Date.now()}`,
+      created_at: new Date().toISOString()
+    };
+    
+    allMedia.unshift(mediaWithId);
+    fs.writeFileSync(mediaPath, JSON.stringify(allMedia, null, 4));
+    res.status(201).json(mediaWithId);
+  });
+
+  app.delete("/api/media/:id", (req, res) => {
+    const { id } = req.params;
+    const mediaPath = path.join(process.cwd(), "server/data/media.json");
+    let allMedia = JSON.parse(fs.readFileSync(mediaPath, "utf-8"));
+    
+    const initialLength = allMedia.length;
+    allMedia = allMedia.filter((m: any) => m.id !== id);
+    
+    if (allMedia.length < initialLength) {
+      fs.writeFileSync(mediaPath, JSON.stringify(allMedia, null, 4));
+      res.json({ success: true, message: "Media deleted" });
+    } else {
+      res.status(404).json({ message: "Media not found" });
+    }
+  });
+
+  app.put("/api/media/:id", (req, res) => {
+    const { id } = req.params;
+    const updatedData = req.body;
+    const mediaPath = path.join(process.cwd(), "server/data/media.json");
+    const allMedia = JSON.parse(fs.readFileSync(mediaPath, "utf-8"));
+    
+    const index = allMedia.findIndex((m: any) => m.id === id);
+    if (index !== -1) {
+      allMedia[index] = { ...allMedia[index], ...updatedData };
+      fs.writeFileSync(mediaPath, JSON.stringify(allMedia, null, 4));
+      res.json(allMedia[index]);
+    } else {
+      res.status(404).json({ message: "Media not found" });
+    }
+  });
+
   app.get("/api/schema", (req, res) => {
     const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), "server/data/schema.json"), "utf-8"));
     res.json(data);

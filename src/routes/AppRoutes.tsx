@@ -6,12 +6,14 @@ import { DataTable } from '../components/datatable/DataTable';
 import { DynamicForm } from '../components/DynamicForm';
 import { UsagePage } from '../components/UsagePage';
 import { Settings } from '../components/Settings';
+import MediaPage from '../pages/MediaPage';
 
 const viewMap: Record<string, React.ComponentType> = {
     'dashboard': Dashboard,
     'list': DataTable,
     'usage': UsagePage,
     'settings': Settings,
+    'media': MediaPage,
 };
 
 export const AppRoutes: React.FC = () => {

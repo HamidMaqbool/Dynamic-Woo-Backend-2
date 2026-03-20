@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { X, Upload, GripVertical, Plus, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../utils/cn';
+import { MediaModal } from '../media/MediaModal';
 
 interface GalleryFieldProps {
   value: string[];
@@ -18,31 +19,14 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const dragTimeoutRef = useRef<any>(null);
   const lastReorderTimeRef = useRef<number>(0);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    const remaining = max - value.length;
-    const filesToUpload = files.slice(0, remaining);
-
-    if (filesToUpload.length === 0) {
-      alert(`Maximum ${max} images allowed.`);
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      // Mock upload
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const newUrls = filesToUpload.map(file => URL.createObjectURL(file as File));
-      onChange([...value, ...newUrls]);
-    } finally {
-      setIsUploading(false);
-    }
+  const handleSelect = (items: any[]) => {
+    const newUrls = items.map(item => item.url);
+    const combined = [...value, ...newUrls];
+    onChange(combined.slice(0, max));
   };
 
   const removeImage = (indexToRemove: number) => {
@@ -116,17 +100,13 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
             {value.length} / {max} Images
           </span>
           {!readOnly && value.length < max && (
-            <label className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 text-accent rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-accent/20 transition-colors cursor-pointer">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 text-accent rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-accent/20 transition-colors cursor-pointer"
+            >
               <Plus className="w-3.5 h-3.5" />
               Add
-              <input 
-                type="file" 
-                multiple 
-                className="sr-only" 
-                onChange={handleUpload} 
-                disabled={isUploading} 
-              />
-            </label>
+            </button>
           )}
         </div>
       </div>
@@ -200,43 +180,39 @@ export const GalleryField: React.FC<GalleryFieldProps> = ({
           })}
 
         {!readOnly && value.length < max && (
-          <label className={cn(
-            "aspect-square rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-2 group hover:border-accent transition-colors cursor-pointer",
-            value.length === 0 ? "col-span-2 row-span-2" : "",
-            isUploading && "opacity-50 cursor-not-allowed"
-          )}>
-            <input 
-              type="file" 
-              multiple 
-              className="sr-only" 
-              onChange={handleUpload} 
-              disabled={isUploading} 
-            />
-            {isUploading ? (
-              <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <>
-                <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Upload className="w-5 h-5 text-slate-400 group-hover:text-accent transition-colors" />
-                </div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Add Media</span>
-              </>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className={cn(
+              "aspect-square rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-2 group hover:border-accent transition-colors cursor-pointer",
+              value.length === 0 ? "col-span-2 row-span-2" : ""
             )}
-          </label>
+          >
+            <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Upload className="w-5 h-5 text-slate-400 group-hover:text-accent transition-colors" />
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Add Media</span>
+          </button>
         )}
       </div>
 
-      {value.length === 0 && !isUploading && (
+      {value.length === 0 && (
         <div className="py-16 border-2 border-dashed border-slate-100 rounded-2xl text-center bg-slate-50/30">
           <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4">
             <ImageIcon className="w-8 h-8 text-slate-200" />
           </div>
           <p className="text-sm text-slate-500 font-bold">No media uploaded yet</p>
           <p className="text-xs text-slate-400 mt-1 max-w-[200px] mx-auto">
-            Drag and drop images here, or click to select files
+            Click to select files from media library
           </p>
         </div>
       )}
+
+      <MediaModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelect={handleSelect}
+        multiSelect={true}
+      />
     </div>
   );
 };

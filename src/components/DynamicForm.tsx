@@ -33,7 +33,6 @@ export const DynamicForm: React.FC = () => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [isUploadingSingle, setIsUploadingSingle] = useState(false);
 
     const formConfig = schema?.form["auroparts-product"] || [];
 
@@ -120,21 +119,6 @@ export const DynamicForm: React.FC = () => {
                 delete updated[name];
                 return updated;
             });
-        }
-    };
-
-    const handleSingleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsUploadingSingle(true);
-        try {
-            // Mock upload
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const mockUrl = URL.createObjectURL(file);
-            handleChange('image', mockUrl);
-        } finally {
-            setIsUploadingSingle(false);
         }
     };
 
@@ -240,8 +224,6 @@ export const DynamicForm: React.FC = () => {
                     <ImageField 
                         value={value ?? ''}
                         onChange={onChange}
-                        isUploading={isUploadingSingle}
-                        onUpload={handleSingleImageUpload}
                         readOnly={readOnly}
                     />
                 );
@@ -285,7 +267,7 @@ export const DynamicForm: React.FC = () => {
             default:
                 return <div className="text-xs text-rose-500 font-bold bg-rose-50 p-3 rounded-lg border border-rose-100 italic">Unsupported field type: {field.type}</div>;
         }
-    }, [errors, isUploadingSingle]);
+    }, [errors]);
 
     const mainSections = formConfig.filter(s => s.type !== 'sidebar');
     const sidebarSections = formConfig.filter(s => s.type === 'sidebar');

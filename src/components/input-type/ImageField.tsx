@@ -1,57 +1,73 @@
 
-import React from 'react';
-import { Upload } from 'lucide-react';
+import React, { useState } from 'react';
+import { Upload, Image as ImageIcon, X } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { MediaModal } from '../media/MediaModal';
 
 interface ImageFieldProps {
   value: string;
   onChange: (value: string) => void;
-  isUploading?: boolean;
-  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
 }
 
 export const ImageField: React.FC<ImageFieldProps> = ({
   value,
   onChange,
-  isUploading,
-  onUpload,
   readOnly
 }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleSelect = (items: any[]) => {
+    if (items.length > 0) {
+      onChange(items[0].url);
+    }
+  };
+
   return (
     <div className="space-y-3">
-      <label className={cn(
-        "block aspect-video rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden group hover:border-accent transition-colors cursor-pointer relative",
-        readOnly && "cursor-not-allowed opacity-70 hover:border-slate-200"
-      )}>
-        <input 
-          type="file" 
-          className="sr-only" 
-          onChange={onUpload} 
-          disabled={isUploading || readOnly} 
-        />
-        {isUploading ? (
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Uploading...</span>
-          </div>
-        ) : value ? (
-          <img src={value} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+      <div 
+        onClick={() => !readOnly && setIsModalOpen(true)}
+        className={cn(
+          "block aspect-video rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden group hover:border-accent transition-colors cursor-pointer relative",
+          readOnly && "cursor-not-allowed opacity-70 hover:border-slate-200"
+        )}
+      >
+        {value ? (
+          <>
+            <img src={value} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            {!readOnly && (
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="text-[10px] font-bold text-white uppercase tracking-widest bg-accent px-3 py-1.5 rounded-lg shadow-lg">Change Image</span>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center">
-            <Upload className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No Image Selected</span>
+            <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+              <Upload className="w-6 h-6 text-slate-300 group-hover:text-accent transition-colors" />
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Image</span>
           </div>
         )}
-      </label>
-      {!readOnly && (
+      </div>
+
+      {!readOnly && value && (
         <button 
           type="button"
-          className="w-full py-2.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 uppercase tracking-widest hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-[0.98]"
+          onClick={() => onChange('')}
+          className="w-full py-2.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:bg-rose-50 hover:border-rose-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
         >
-          Change Image
+          <X className="w-3.5 h-3.5" />
+          Remove Image
         </button>
       )}
+
+      <MediaModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelect={handleSelect}
+        multiSelect={false}
+      />
     </div>
   );
 };
