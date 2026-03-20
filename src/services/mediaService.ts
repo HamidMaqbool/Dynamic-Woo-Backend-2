@@ -12,9 +12,23 @@ export interface MediaItem {
   created_at: string;
 }
 
+export interface MediaResponse {
+  media: MediaItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const mediaService = {
-  getMedia: async (): Promise<MediaItem[]> => {
-    return apiFetch('/api/media');
+  getMedia: async (params?: { page?: number; limit?: number; search?: string; dateFilter?: string }): Promise<MediaResponse> => {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.limit) query.append('limit', params.limit.toString());
+    if (params?.search) query.append('search', params.search);
+    if (params?.dateFilter) query.append('dateFilter', params.dateFilter);
+    
+    return apiFetch(`/api/media?${query.toString()}`);
   },
 
   uploadMedia: async (file: File): Promise<MediaItem> => {

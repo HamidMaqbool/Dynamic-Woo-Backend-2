@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Upload, Image as ImageIcon, Search, X, Check, Trash2, Info, FileText, Loader2, Grid, List, Calendar, ChevronLeft, ChevronRight, Edit2, Save, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../utils/cn';
 import { mediaService, MediaItem } from '../../services/mediaService';
 import { useCRMStore } from '../../store/useStore';
+import { MediaSkeleton } from '../Skeleton';
 
 interface MediaManagerProps {
   onSelect?: (items: MediaItem[]) => void;
@@ -24,11 +26,18 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
   onClose,
   isModal = false
 }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'upload' | 'library'>('library');
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  
+  // URL Params / State
+  const initialPage = Number(searchParams.get('page')) || 1;
+  const initialSearch = searchParams.get('search') || '';
+  const initialDateFilter = (searchParams.get('dateFilter') as DateFilter) || 'all';
+
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [dateFilter, setDateFilter] = useState<DateFilter>(initialDateFilter);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedItems, setSelectedItems] = useState<MediaItem[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState<{ name: string; progress: number }[]>([]);
@@ -43,7 +52,9 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
 
   // Pagination & Load More
   const [itemsToShow, setItemsToShow] = useState(itemsPerPageSetting);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const itemsPerPage = itemsPerPageSetting;
 
   const observerTarget = useRef<HTMLDivElement>(null);
@@ -53,21 +64,84 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
   const [editName, setEditName] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const fetchMedia = useCallback(async () => {
+  const fetchMedia = useCallback(async (page: number, search: string, filter: string) => {
     setIsLoading(true);
     try {
-      const data = await mediaService.getMedia();
-      setMedia(data);
+      const response = await mediaService.getMedia({
+        page,
+        limit: itemsPerPage,
+        search,
+        dateFilter: filter
+      });
+      setMedia(response.media);
+      setTotalItems(response.total);
+      setTotalPages(response.totalPages);
     } catch (error) {
       console.error('Failed to fetch media', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [itemsPerPage]);
 
+  // Sync state with URL params
   useEffect(() => {
-    fetchMedia();
-  }, [fetchMedia]);
+    if (!isModal) {
+      const page = Number(searchParams.get('page')) || 1;
+      const search = searchParams.get('search') || '';
+      const filter = (searchParams.get('dateFilter') as DateFilter) || 'all';
+      
+      setCurrentPage(page);
+      setSearchQuery(search);
+      setDateFilter(filter);
+      fetchMedia(page, search, filter);
+    } else {
+      fetchMedia(currentPage, searchQuery, dateFilter);
+    }
+  }, [searchParams, isModal, fetchMedia]);
+
+  const updateParams = (updates: Record<string, string | number>) => {
+    if (isModal) return;
+    
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === 'all' || value === '') {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value.toString());
+      }
+    });
+    setSearchParams(newParams);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (isModal) {
+      setCurrentPage(page);
+      fetchMedia(page, searchQuery, dateFilter);
+    } else {
+      updateParams({ page });
+    }
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    if (!isModal) {
+      // Debounce would be better, but for now simple update
+      const timer = setTimeout(() => {
+        updateParams({ search: query, page: 1 });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  };
+
+  const handleDateFilterChange = (filter: DateFilter) => {
+    setDateFilter(filter);
+    if (isModal) {
+      setCurrentPage(1);
+      fetchMedia(1, searchQuery, filter);
+    } else {
+      updateParams({ dateFilter: filter, page: 1 });
+    }
+  };
 
   useEffect(() => {
     if (selectedIds.length > 0 && media.length > 0) {
@@ -149,67 +223,6 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
       setIsUpdating(false);
     }
   };
-
-  useEffect(() => {
-    setCurrentPage(1);
-    setItemsToShow(itemsPerPageSetting);
-  }, [searchQuery, dateFilter, itemsPerPageSetting]);
-
-  const filteredMedia = useMemo(() => {
-    return media.filter(m => {
-      const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      if (!matchesSearch) return false;
-
-      if (dateFilter === 'all') return true;
-
-      const date = new Date(m.created_at);
-      const now = new Date();
-      
-      if (dateFilter === 'today') {
-        return date.toDateString() === now.toDateString();
-      }
-      if (dateFilter === 'this-month') {
-        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-      }
-      if (dateFilter === 'this-year') {
-        return date.getFullYear() === now.getFullYear();
-      }
-      
-      return true;
-    });
-  }, [media, searchQuery, dateFilter]);
-
-  const paginatedMedia = useMemo(() => {
-    if (isModal && viewMode === 'grid') {
-      return filteredMedia.slice(0, itemsToShow);
-    } else {
-      const start = (currentPage - 1) * itemsPerPage;
-      return filteredMedia.slice(start, start + itemsPerPage);
-    }
-  }, [filteredMedia, viewMode, itemsToShow, currentPage, isModal, itemsPerPage]);
-
-  // Infinite Scroll for Modal
-  useEffect(() => {
-    if (!isModal || !infiniteScrollEnabled || activeTab !== 'library') return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && itemsToShow < filteredMedia.length) {
-          setItemsToShow(prev => prev + itemsPerPageSetting);
-        }
-      },
-      { threshold: 1.0 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [isModal, infiniteScrollEnabled, activeTab, itemsToShow, filteredMedia.length, itemsPerPageSetting]);
-
-  const totalPages = Math.ceil(filteredMedia.length / itemsPerPage);
 
   const getPageNumbers = () => {
     const pages = [];
@@ -415,7 +428,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
                     type="text"
                     placeholder="Search media..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
                   />
                 </div>
@@ -445,7 +458,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
                   <Calendar className="w-4 h-4 text-slate-400" />
                   <select
                     value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+                    onChange={(e) => handleDateFilterChange(e.target.value as DateFilter)}
                     className="text-xs font-bold text-slate-600 bg-transparent outline-none cursor-pointer"
                   >
                     <option value="all">All Dates</option>
@@ -457,19 +470,15 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
 
                 <div className="h-4 w-px bg-slate-200 hidden sm:block" />
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  {filteredMedia.length} Items
+                  {totalItems} Items
                 </span>
               </div>
 
               {/* Grid/List Content */}
               <div className="flex-1 overflow-y-auto p-6 pb-24 custom-scrollbar">
                 {isLoading ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {[...Array(12)].map((_, i) => (
-                      <div key={i} className="aspect-square bg-slate-100 rounded-xl animate-pulse" />
-                    ))}
-                  </div>
-                ) : filteredMedia.length === 0 ? (
+                  <MediaSkeleton viewMode={viewMode} />
+                ) : media.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center">
                     <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
                       <ImageIcon className="w-8 h-8 text-slate-200" />
@@ -480,7 +489,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
                 ) : viewMode === 'grid' ? (
                   <div className="space-y-8">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                      {paginatedMedia.map((item) => {
+                      {media.map((item) => {
                         const isSelected = selectedItems.some(m => m.id === item.id);
                         return (
                           <div
@@ -517,7 +526,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
                       })}
                     </div>
                     
-                    {isModal && !infiniteScrollEnabled && itemsToShow < filteredMedia.length && (
+                    {isModal && !infiniteScrollEnabled && itemsToShow < totalItems && (
                       <div className="flex justify-center pt-4">
                         <button
                           onClick={() => setItemsToShow(prev => prev + itemsPerPageSetting)}
@@ -530,7 +539,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
 
                     {isModal && infiniteScrollEnabled && (
                       <div ref={observerTarget} className="h-10 flex items-center justify-center">
-                        {itemsToShow < filteredMedia.length && (
+                        {itemsToShow < totalItems && (
                           <Loader2 className="w-6 h-6 text-accent animate-spin" />
                         )}
                       </div>
@@ -540,7 +549,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
                       <div className="flex items-center justify-center gap-2 pt-8">
                         <button
                           disabled={currentPage === 1}
-                          onClick={() => setCurrentPage(prev => prev - 1)}
+                          onClick={() => handlePageChange(currentPage - 1)}
                           className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-accent disabled:opacity-50 transition-all"
                         >
                           <ChevronLeft className="w-5 h-5" />
@@ -549,7 +558,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
                         {getPageNumbers().map((page, idx) => (
                           <button
                             key={idx}
-                            onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                            onClick={() => typeof page === 'number' && handlePageChange(page)}
                             className={cn(
                               "min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all",
                               currentPage === page 
@@ -565,7 +574,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
 
                         <button
                           disabled={currentPage === totalPages}
-                          onClick={() => setCurrentPage(prev => prev + 1)}
+                          onClick={() => handlePageChange(currentPage + 1)}
                           className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-accent disabled:opacity-50 transition-all"
                         >
                           <ChevronRight className="w-5 h-5" />
@@ -587,7 +596,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {paginatedMedia.map((item) => {
+                          {media.map((item) => {
                             const isSelected = selectedItems.some(m => m.id === item.id);
                             return (
                               <tr 
@@ -632,7 +641,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
                       <div className="flex items-center justify-center gap-2 pt-8">
                         <button
                           disabled={currentPage === 1}
-                          onClick={() => setCurrentPage(prev => prev - 1)}
+                          onClick={() => handlePageChange(currentPage - 1)}
                           className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-accent disabled:opacity-50 transition-all"
                         >
                           <ChevronLeft className="w-5 h-5" />
@@ -641,7 +650,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
                         {getPageNumbers().map((page, idx) => (
                           <button
                             key={idx}
-                            onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                            onClick={() => typeof page === 'number' && handlePageChange(page)}
                             className={cn(
                               "min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all",
                               currentPage === page 
@@ -657,7 +666,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({
 
                         <button
                           disabled={currentPage === totalPages}
-                          onClick={() => setCurrentPage(prev => prev + 1)}
+                          onClick={() => handlePageChange(currentPage + 1)}
                           className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-accent disabled:opacity-50 transition-all"
                         >
                           <ChevronRight className="w-5 h-5" />

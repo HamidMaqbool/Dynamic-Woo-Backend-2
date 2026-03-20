@@ -49,8 +49,50 @@ async function startServer() {
   });
 
   app.get("/api/media", (req, res) => {
-    const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), "server/data/media.json"), "utf-8"));
-    res.json(data);
+    const { page = 1, limit = 12, search = "", dateFilter = "all" } = req.query;
+    const mediaPath = path.join(process.cwd(), "server/data/media.json");
+    const allMedia = JSON.parse(fs.readFileSync(mediaPath, "utf-8"));
+    
+    let filteredMedia = [...allMedia];
+
+    // Search
+    if (search) {
+      const query = (search as string).toLowerCase();
+      filteredMedia = filteredMedia.filter(m => 
+        m.name.toLowerCase().includes(query)
+      );
+    }
+
+    // Date Filter
+    if (dateFilter !== "all") {
+      const now = new Date();
+      filteredMedia = filteredMedia.filter(m => {
+        const date = new Date(m.created_at);
+        if (dateFilter === "today") {
+          return date.toDateString() === now.toDateString();
+        }
+        if (dateFilter === "this-month") {
+          return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+        }
+        if (dateFilter === "this-year") {
+          return date.getFullYear() === now.getFullYear();
+        }
+        return true;
+      });
+    }
+
+    // Pagination
+    const total = filteredMedia.length;
+    const startIndex = (Number(page) - 1) * Number(limit);
+    const paginatedMedia = filteredMedia.slice(startIndex, startIndex + Number(limit));
+
+    res.json({
+      media: paginatedMedia,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / Number(limit))
+    });
   });
 
   app.post("/api/media", (req, res) => {
